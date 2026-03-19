@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Nivel de storytelling para líderes
  * Description: Gestión del nivel de storytelling para líderes, formulario de registro, dashboard con estadísticas y exportación a PDF.
- * Version: 1.1.0
+ * Version: 1.2.0
  * Author: ChanoDEV
  * Text Domain: storytelling-levels
  * License: GPL2
@@ -16,6 +16,126 @@ if ( ! defined( 'ABSPATH' ) ) {
 // Define constants
 define( 'STORYTELLING_PATH', plugin_dir_path( __FILE__ ) );
 define( 'STORYTELLING_URL', plugin_dir_url( __FILE__ ) );
+
+function storytelling_get_attachment_id_by_url( $url ) {
+    $attachment_id = attachment_url_to_postid( $url );
+    if ( $attachment_id ) {
+        return $attachment_id;
+    }
+    
+    // If not found in library but file exists in uploads, Sideload it!
+    $upload_dir = wp_upload_dir();
+    $file_path = str_replace( $upload_dir['baseurl'], $upload_dir['basedir'], $url );
+    
+    if ( file_exists( $file_path ) ) {
+        $filetype = wp_check_filetype( basename( $file_path ), null );
+        $attachment = array(
+            'guid'           => $upload_dir['url'] . '/' . basename( $file_path ), 
+            'post_mime_type' => $filetype['type'],
+            'post_title'     => preg_replace( '/\.[^.]+$/', '', basename( $file_path ) ),
+            'post_content'   => '',
+            'post_status'    => 'inherit'
+        );
+        $attachment_id = wp_insert_attachment( $attachment, $file_path, 0 );
+        require_once( ABSPATH . 'wp-admin/includes/image.php' );
+        $attach_data = wp_generate_attachment_metadata( $attachment_id, $file_path );
+        wp_update_attachment_metadata( $attachment_id, $attach_data );
+        return $attachment_id;
+    }
+    return false;
+}
+
+function storytelling_sync_participant_cpt($row) {
+    if (!$row || empty($row->full_name)) return false;
+    
+    // Determine post type correctly (participant vs participants)
+    $pt = '';
+    if (post_type_exists('participant')) {
+        $pt = 'participant';
+    } elseif (post_type_exists('participants')) {
+        $pt = 'participants';
+    } else {
+        return false;
+    }
+
+    // Try to find if post already exists by exact title
+    $existing_post = get_page_by_title($row->full_name, OBJECT, $pt);
+    $post_id = 0;
+
+    if ($existing_post) {
+        $post_id = $existing_post->ID;
+    } else {
+        // Create new post
+        $post_data = array(
+            'post_title'   => sanitize_text_field($row->full_name),
+            'post_status'  => 'publish',
+            'post_type'    => $pt,
+            'post_author'  => get_current_user_id() ? get_current_user_id() : 1,
+        );
+        $post_id = wp_insert_post($post_data);
+    }
+
+    if ($post_id && !is_wp_error($post_id)) {
+        // Sync metadata dictionary (Our DB Column => Their ACF Field)
+        $field_mapping = array(
+            'company_name'          => 'company_name',
+            'industry'              => 'industry',
+            'position_cargo'        => 'position',
+            'photo_url'             => 'avatar',
+            'contact_otros'         => 'others',
+            'personal_opinion'      => 'observations',
+            'ranking_personal'      => 'personal_ranking',
+            'ranking_institucional' => 'institucional_ranking',
+            'm_lenguaje_no_verbal'  => 'no_verbal_language',
+            'm_dirige_entrevista'   => 'manage_interview',
+            'm_mensajes'            => 'memorable_messages',
+            'm_preguntas_incisivas' => 'incisive_questions',
+            'm_frases_citables'     => 'soundbites_messages',
+            'm_usa_datos'           => 'show_data',
+            'm_habla_valores'       => 'show_storytelling',
+            'dynamic_metrics'       => 'dynamic_metrics',
+            'excluded_metrics'      => 'excluded_metrics'
+        );
+
+        foreach ($field_mapping as $db_field => $acf_field) {
+            if (isset($row->$db_field)) {
+                $val = $row->$db_field;
+                
+                if ($db_field === 'photo_url' && !empty($val)) {
+                    $attachment_id = storytelling_get_attachment_id_by_url($val);
+                    if ($attachment_id) {
+                        $val = $attachment_id;
+                        // Always set as WP Featured Image too just in case
+                        set_post_thumbnail($post_id, $attachment_id);
+                    }
+                }
+
+                // Map plugin metric string identifiers to ACF human labels
+                $metric_fields = array('m_lenguaje_no_verbal', 'm_dirige_entrevista', 'm_mensajes', 'm_preguntas_incisivas', 'm_frases_citables', 'm_usa_datos', 'm_habla_valores');
+                if (in_array($db_field, $metric_fields)) {
+                    $metric_map = array(
+                        'no-data'      => 'No hay datos',
+                        'insuficiente' => 'Manejo insuficiente',
+                        'bueno'        => 'Buen vocero/a',
+                        'experto'      => 'Experto/a'
+                    );
+                    if (isset($metric_map[$val])) {
+                        $val = $metric_map[$val];
+                    }
+                }
+                
+                // Update basic WP meta
+                update_post_meta($post_id, $acf_field, $val);
+                // Attempt to update via generic update_field if ACF or similar is enabled
+                if (function_exists('update_field')) {
+                    update_field($acf_field, $val, $post_id);
+                }
+            }
+        }
+        return $post_id;
+    }
+    return false;
+}
 
 function storytelling_get_user_average($row) {
     if (!$row) return '0.00';
@@ -82,6 +202,7 @@ require_once STORYTELLING_PATH . 'includes/db-handler.php';
 require_once STORYTELLING_PATH . 'includes/form-handler.php';
 require_once STORYTELLING_PATH . 'includes/admin-pages.php';
 require_once STORYTELLING_PATH . 'includes/pdf-generator.php';
+require_once STORYTELLING_PATH . 'includes/cpt-registration.php';
 
 // Ensure database column exists
 function storytelling_update_db_check() {

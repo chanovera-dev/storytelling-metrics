@@ -65,6 +65,19 @@ function storytelling_settings_page() {
         echo '<div class="notice notice-success is-dismissible"><p>Configuración general guardada.</p></div>';
     }
 
+    if ( isset( $_POST['storytelling_sync_cpt_bulk'] ) && current_user_can('manage_options') ) {
+        $count = 0;
+        $all_data = Storytelling_DB::get_all_data();
+        if ( !empty($all_data) ) {
+            foreach ($all_data as $row) {
+                if (storytelling_sync_participant_cpt($row)) {
+                    $count++;
+                }
+            }
+        }
+        echo '<div class="notice notice-success is-dismissible"><p>Sincronización completada. Se procesaron ' . $count . ' participantes.</p></div>';
+    }
+
     $global_excluded = get_option( 'storytelling_global_excluded_metrics', array() );
 
     // Gather all fixed and dynamic metric names
@@ -143,6 +156,15 @@ function storytelling_settings_page() {
             </table>
             <p class="submit">
                 <input type="submit" name="storytelling_save_settings" class="button button-primary" value="Guardar Ajustes">
+            </p>
+        </form>
+
+        <hr style="margin: 40px 0;">
+        <h2>Sincronización con "Participants"</h2>
+        <p>Si el Post Type "Participants" está activo en el sitio, puedes sincronizar todos los registros existentes hacia él (para usarlos con ACF o mostrar sus campos públicamente).</p>
+        <form method="post">
+            <p class="submit">
+                <input type="submit" name="storytelling_sync_cpt_bulk" class="button button-secondary" value="Forzar Sincronización Completa de Registros">
             </p>
         </form>
     </div>
@@ -451,10 +473,20 @@ function storytelling_registros_page() {
 
         if ( isset( $_GET['id'] ) && $_GET['action'] === 'edit' ) {
             Storytelling_DB::update_data( intval( $_GET['id'] ), $data );
-            echo '<div class="updated"><p>Registro actualizado.</p></div>';
+            
+            // Auto sync
+            $saved_row = (object) $data;
+            storytelling_sync_participant_cpt($saved_row);
+            
+            echo '<div class="updated"><p>Registro actualizado y sincronizado.</p></div>';
         } else {
             Storytelling_DB::insert_data( $data );
-            echo '<div class="updated"><p>Registro creado con éxito.</p></div>';
+            
+            // Auto sync
+            $saved_row = (object) $data;
+            storytelling_sync_participant_cpt($saved_row);
+            
+            echo '<div class="updated"><p>Registro creado con éxito y sincronizado.</p></div>';
         }
     }
 
