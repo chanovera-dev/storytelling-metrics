@@ -77,8 +77,8 @@ function storytelling_render_record_pdf( $row ) {
                 <div class="item"><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></div>
                 <div class="item"><strong>Ranking Personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></div>
                 <div class="item"><strong>Ranking Institucional:</strong> <?php echo esc_html( $row->ranking_institutional ?? '' ); ?></div>
-                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Otros:</strong><br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></div>
-                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Observaciones:</strong><br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></div>
+                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Presencia y dominio escénico:</strong><br><?php echo wpautop( wp_kses_post( $row->contact_otros ) ); ?></div>
+                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Desempeño retórico y contenidos:</strong><br><?php echo wpautop( wp_kses_post( $row->personal_opinion ) ); ?></div>
             </div>
         </div>
 
@@ -298,8 +298,8 @@ function storytelling_render_global_pdf() {
                     <div class="data-col"><strong>Cargo</strong> <?php echo esc_html($row->position_cargo); ?></div>
                     <div class="data-col"><strong>Ranking Personal</strong> <?php echo esc_html($row->ranking_personal ?? ''); ?></div>
                     <div class="data-col"><strong>Ranking Institucional</strong> <?php echo esc_html($row->ranking_institutional ?? ''); ?></div>
-                    <div class="data-col full" style="margin-top: 10px;"><strong>Otros</strong> <?php echo nl2br(esc_html($row->contact_otros)); ?></div>
-                    <div class="data-col full" style="margin-top: 10px;"><strong>Observaciones</strong> <?php echo nl2br(esc_html($row->personal_opinion)); ?></div>
+                    <div class="data-col full" style="margin-top: 10px;"><strong>Presencia y dominio escénico</strong> <?php echo wpautop(wp_kses_post($row->contact_otros)); ?></div>
+                    <div class="data-col full" style="margin-top: 10px;"><strong>Desempeño retórico y contenidos</strong> <?php echo wpautop(wp_kses_post($row->personal_opinion)); ?></div>
                 </div>
 
                 <div class="section-label">Métricas - Promedio: <?php echo storytelling_get_user_average($row); ?> / 5.00</div>

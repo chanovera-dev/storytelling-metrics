@@ -417,10 +417,10 @@ function storytelling_registros_page() {
             'industry'            => sanitize_text_field( $_POST['industry'] ),
             'full_name'           => sanitize_text_field( $_POST['full_name'] ),
             'position_cargo'      => sanitize_text_field( $_POST['position_cargo'] ),
-            'contact_otros'       => sanitize_textarea_field( $_POST['contact_otros'] ),
+            'contact_otros'       => wp_kses_post( wp_unslash( $_POST['contact_otros'] ?? '' ) ),
             'ranking_personal'    => sanitize_text_field( $_POST['ranking_personal'] ?? '' ),
             'ranking_institutional'=> sanitize_text_field( $_POST['ranking_institutional'] ?? '' ),
-            'personal_opinion'    => sanitize_textarea_field( $_POST['personal_opinion'] ),
+            'personal_opinion'    => wp_kses_post( wp_unslash( $_POST['personal_opinion'] ?? '' ) ),
             'm_lenguaje_no_verbal'=> sanitize_text_field( $_POST['m_lenguaje_no_verbal'] ),
             'm_dirige_entrevista' => sanitize_text_field( $_POST['m_dirige_entrevista'] ),
             'm_mensajes'          => sanitize_text_field( $_POST['m_mensajes'] ),
@@ -519,9 +519,8 @@ function storytelling_registros_page() {
                     <p><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></p>
                     <p><strong>Ranking de reputación personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></p>
                     <p><strong>Ranking de reputación institucional:</strong> <?php echo esc_html( $row->ranking_institutional ?? '' ); ?></p>
-                    <p><strong>Presencia y dominio escénico:</strong> <br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></p>
-                    <p><strong>Desempeño retórico y contenidos:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
-
+                    <div><strong>Presencia y dominio escénico:</strong> <div style="margin-top: 5px;"><?php echo wpautop( wp_kses_post( $row->contact_otros ) ); ?></div></div>
+                    <div style="margin-top: 15px;"><strong>Desempeño retórico y contenidos:</strong> <div style="margin-top: 5px;"><?php echo wpautop( wp_kses_post( $row->personal_opinion ) ); ?></div></div>
 
                     <hr>
                     <h3>Métricas</h3>
@@ -616,11 +615,11 @@ function storytelling_registros_page() {
                     </tr>
                     <tr>
                         <th><label>Presencia y dominio escénico</label></th>
-                        <td><textarea name="contact_otros" class="large-text" rows="3"><?php echo esc_textarea( $row->contact_otros ?? '' ); ?></textarea></td>
+                        <td><?php wp_editor( wp_unslash( $row->contact_otros ?? '' ), 'contact_otros', array( 'textarea_rows' => 5, 'media_buttons' => false ) ); ?></td>
                     </tr>
                     <tr>
                         <th><label>Desempeño retórico y contenidos</label></th>
-                        <td><textarea name="personal_opinion" class="large-text" rows="3"><?php echo esc_textarea( $row->personal_opinion ?? '' ); ?></textarea></td>
+                        <td><?php wp_editor( wp_unslash( $row->personal_opinion ?? '' ), 'personal_opinion', array( 'textarea_rows' => 5, 'media_buttons' => false ) ); ?></td>
                     </tr>
 
 

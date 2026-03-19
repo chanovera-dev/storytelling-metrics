@@ -96,13 +96,13 @@ function storytelling_register_acf_participants_fields() {
                     'key' => 'field_others',
                     'label' => 'Presencia y dominio escénico',
                     'name' => 'others',
-                    'type' => 'textarea',
+                    'type' => 'wysiwyg',
                 ),
                 array(
                     'key' => 'field_observations',
                     'label' => 'Desempeño retórico y contenidos',
                     'name' => 'observations',
-                    'type' => 'textarea',
+                    'type' => 'wysiwyg',
                 ),
                 array(
                     'key' => 'field_personal_ranking',
