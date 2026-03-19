@@ -219,10 +219,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (activeSeries.length === 0) {
                     return { 
                         series: [{ name: 'Vacío', data: [0, 0, 0, 0, 0, 0, 0] }], 
-                        colors: ['transparent'] 
+                        colors: ['transparent'],
+                        labels: categories
                     };
                 }
-                return { series: activeSeries, colors: activeColors };
+
+                // Gather indices that have at least one non-null value across active series
+                let validIndices = [];
+                for (let i = 0; i < categories.length; i++) {
+                    let hasData = false;
+                    for (let s of activeSeries) {
+                        if (s.data[i] !== null && s.data[i] !== undefined) {
+                            hasData = true;
+                            break;
+                        }
+                    }
+                    if (hasData) {
+                        validIndices.push(i);
+                    }
+                }
+
+                // Reconstruct series data with only valid indices
+                let newSeries = activeSeries.map(function(s) {
+                    return {
+                        name: s.name,
+                        data: validIndices.map(function(index) {
+                            return s.data[index] === null ? 0 : s.data[index];
+                        })
+                    };
+                });
+
+                let newLabels = validIndices.map(index => categories[index]);
+
+                return { series: newSeries, colors: activeColors, labels: newLabels };
             }
 
             var initialConfig = getActiveSeriesConfig();
@@ -236,7 +265,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     toolbar: { show: false },
                     fontFamily: 'Helvetica, Arial, sans-serif'
                 },
-                labels: categories,
+                labels: initialConfig.labels,
                 stroke: {
                     width: 2
                 },
@@ -273,7 +302,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 const config = getActiveSeriesConfig();
                 radarChart.updateOptions({
                     series: config.series,
-                    colors: config.colors
+                    colors: config.colors,
+                    labels: config.labels
                 });
             }
 

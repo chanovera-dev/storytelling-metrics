@@ -132,9 +132,36 @@ function storytelling_render_record_pdf( $row ) {
             }
         }
 
+        $excluded_opts = array();
+        if (!empty($row->excluded_metrics)) {
+            $decoded = json_decode($row->excluded_metrics, true);
+            if (is_array($decoded)) {
+                $excluded_opts = $decoded;
+            }
+        }
+        $global_excluded = get_option('storytelling_global_excluded_metrics', array());
+        if (is_array($global_excluded)) {
+            $excluded_opts = array_merge($excluded_opts, $global_excluded);
+        }
+
+        $label_to_db_key = array(
+            'Lenguaje no verbal' => 'm_lenguaje_no_verbal',
+            'Dirige la entrevista' => 'm_dirige_entrevista',
+            'Mensajes memorables' => 'm_mensajes',
+            'Preguntas incisivas' => 'm_preguntas_incisivas',
+            'Frases citables' => 'm_frases_citables',
+            'Usa datos, cifras' => 'm_usa_datos',
+            'Valores e historias' => 'm_habla_valores'
+        );
+
         $categories = array();
         $data_points = array();
         foreach ($metric_mapping as $label => $val) {
+            $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
+            if (in_array($db_val_key, $excluded_opts)) {
+                continue;
+            }
+
             $categories[] = $label;
             $score = 0;
             if ($val === 'bueno' || $val === '2.5') {
@@ -142,7 +169,11 @@ function storytelling_render_record_pdf( $row ) {
             } elseif ($val === 'experto' || $val === '5') {
                 $score = 5;
             }
-            $data_points[] = $score;
+            if ($val !== 'no-data' && $val !== '') {
+                $data_points[] = $score;
+            } else {
+                array_pop($categories);
+            }
         }
 
         $chart_categories = wp_json_encode($categories);
@@ -192,6 +223,7 @@ function storytelling_render_record_pdf( $row ) {
 
 function storytelling_render_global_pdf() {
     $all_data = Storytelling_DB::get_all_data();
+    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
 
     // Sort by ranking_personal ascending
     usort($all_data, function($a, $b) {
@@ -320,9 +352,34 @@ function storytelling_render_global_pdf() {
                     }
                 }
 
+                $excluded_opts = array();
+                if (!empty($row->excluded_metrics)) {
+                    $decoded = json_decode($row->excluded_metrics, true);
+                    if (is_array($decoded)) {
+                        $excluded_opts = $decoded;
+                    }
+                }
+                if (is_array($global_excluded)) {
+                    $excluded_opts = array_merge($excluded_opts, $global_excluded);
+                }
+                
+                $label_to_db_key = array(
+                    'Lenguaje no verbal' => 'm_lenguaje_no_verbal',
+                    'Dirige la entrevista' => 'm_dirige_entrevista',
+                    'Mensajes memorables' => 'm_mensajes',
+                    'Preguntas incisivas' => 'm_preguntas_incisivas',
+                    'Frases citables' => 'm_frases_citables',
+                    'Usa datos, cifras' => 'm_usa_datos',
+                    'Valores e historias' => 'm_habla_valores'
+                );
+
                 $categories = array();
                 $data_points = array();
                 foreach ($metric_mapping as $label => $val) {
+                    $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
+                    if (in_array($db_val_key, $excluded_opts)) {
+                        continue;
+                    }
                     $categories[] = $label;
                     $score = 0;
                     if ($val === 'bueno' || $val === '2.5') {
@@ -330,7 +387,11 @@ function storytelling_render_global_pdf() {
                     } elseif ($val === 'experto' || $val === '5') {
                         $score = 5;
                     }
-                    $data_points[] = $score;
+                    if ($val !== 'no-data' && $val !== '') {
+                        $data_points[] = $score;
+                    } else {
+                        array_pop($categories);
+                    }
                 }
 
                 if (!isset($all_charts_data)) $all_charts_data = array();

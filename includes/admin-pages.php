@@ -33,6 +33,114 @@ function storytelling_admin_menu() {
         'storytelling-registros',
         'storytelling_registros_page'
     );
+
+    add_submenu_page(
+        'storytelling-manager',
+        'Configuraciones',
+        'Configuraciones',
+        'manage_options',
+        'storytelling-settings',
+        'storytelling_settings_page'
+    );
+}
+
+function storytelling_settings_page() {
+    if ( isset( $_POST['storytelling_save_settings'] ) ) {
+        if ( ! current_user_can( 'manage_options' ) ) wp_die();
+        // check_admin_referer('xyz') maybe...
+
+        // Find which ones to exclude globally
+        $all_metrics = isset($_POST['known_metrics']) ? $_POST['known_metrics'] : array();
+        $enabled_metrics = isset($_POST['global_include_metric']) ? $_POST['global_include_metric'] : array();
+        
+        $global_excluded = array();
+        foreach ( $all_metrics as $mk ) {
+            $mk_clean = sanitize_text_field( $mk );
+            if ( !in_array($mk_clean, $enabled_metrics) ) {
+                $global_excluded[] = $mk_clean;
+            }
+        }
+
+        update_option( 'storytelling_global_excluded_metrics', $global_excluded );
+        echo '<div class="notice notice-success is-dismissible"><p>Configuración general guardada.</p></div>';
+    }
+
+    $global_excluded = get_option( 'storytelling_global_excluded_metrics', array() );
+
+    // Gather all fixed and dynamic metric names
+    $fixed_metrics = array(
+        'm_lenguaje_no_verbal'  => 'Lenguaje no verbal',
+        'm_dirige_entrevista'   => 'Dirige la entrevista',
+        'm_mensajes'            => 'Transmite mensajes memorables',
+        'm_preguntas_incisivas' => 'Maneja preguntas incisivas',
+        'm_frases_citables'     => 'Ofrece frases citables (soundbites)',
+        'm_usa_datos'           => 'Usa datos, cifras, ejemplos',
+        'm_habla_valores'       => 'Habla de valores / historias'
+    );
+    
+    // Scan all rows for unique dynamic metric names
+    $all_data = Storytelling_DB::get_all_data();
+    $dynamic_metric_names = array();
+    foreach ( $all_data as $row ) {
+        if ( !empty($row->dynamic_metrics) ) {
+            $dm_arr = json_decode($row->dynamic_metrics, true);
+            if ( is_array($dm_arr) ) {
+                foreach ( $dm_arr as $dm ) {
+                    if ( !empty($dm['name']) && !in_array($dm['name'], $dynamic_metric_names) ) {
+                        $dynamic_metric_names[] = sanitize_text_field($dm['name']);
+                    }
+                }
+            }
+        }
+    }
+
+    ?>
+    <div class="wrap">
+        <h1>Configuración de Métricas</h1>
+        <form method="post">
+            <p>Selecciona qué métricas estarán habilitadas para mostrarse en el dashboard y en los promedios a nivel general. Desmarcar una métrica anulará obligatoriamente los checkboxes individuales de cada registro.</p>
+            <table class="form-table">
+                <tr>
+                    <th colspan="2"><h3>Métricas Fijas</h3></th>
+                </tr>
+                <?php foreach ( $fixed_metrics as $key => $label ) : ?>
+                    <tr>
+                        <th scope="row"><?php echo esc_html($label); ?></th>
+                        <td>
+                            <input type="hidden" name="known_metrics[]" value="<?php echo esc_attr($key); ?>">
+                            <label>
+                                <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($key); ?>" <?php checked(!in_array($key, $global_excluded), true); ?>>
+                                Habilitada (promedios y gráficas)
+                            </label>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+
+                <?php if ( !empty($dynamic_metric_names) ) : ?>
+                    <tr>
+                        <th colspan="2"><h3>Métricas Dinámicas Detectadas</h3></th>
+                    </tr>
+                    <?php foreach ( $dynamic_metric_names as $dyn_name ) : ?>
+                        <tr>
+                            <th scope="row"><?php echo esc_html($dyn_name); ?></th>
+                            <td>
+                                <input type="hidden" name="known_metrics[]" value="<?php echo esc_attr($dyn_name); ?>">
+                                <label>
+                                    <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($dyn_name); ?>" <?php checked(!in_array($dyn_name, $global_excluded), true); ?>>
+                                    Habilitada
+                                </label>
+                            </td>
+                        </tr>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+
+            </table>
+            <p class="submit">
+                <input type="submit" name="storytelling_save_settings" class="button button-primary" value="Guardar Configuraciones">
+            </p>
+        </form>
+    </div>
+    <?php
 }
 
 
@@ -80,6 +188,7 @@ function storytelling_dashboard_page() {
     }
 
     $stats['radar_participants'] = array();
+    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
 
     foreach ( $all_data as $row ) {
         // Default to active if the column doesn't exist or is NULL
@@ -126,10 +235,37 @@ function storytelling_dashboard_page() {
             }
         }
 
+        $excluded_opts = array();
+        if (!empty($row->excluded_metrics)) {
+            $decoded = json_decode($row->excluded_metrics, true);
+            if (is_array($decoded)) {
+                $excluded_opts = $decoded;
+            }
+        }
+        if (is_array($global_excluded)) {
+            $excluded_opts = array_merge($excluded_opts, $global_excluded);
+        }
+        
+        $label_to_db_key = array(
+            'Lenguaje no verbal' => 'm_lenguaje_no_verbal',
+            'Dirige la entrevista' => 'm_dirige_entrevista',
+            'Mensajes memorables' => 'm_mensajes',
+            'Preguntas incisivas' => 'm_preguntas_incisivas',
+            'Frases citables' => 'm_frases_citables',
+            'Usa datos, cifras' => 'm_usa_datos',
+            'Valores e historias' => 'm_habla_valores'
+        );
+
         // Array representing scores for all known global labels
         $participant_scores = array();
 
         foreach ($all_radar_labels as $label) {
+            $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
+            if (in_array($db_val_key, $excluded_opts)) {
+                $participant_scores[] = null;
+                continue;
+            }
+
             $val = isset($user_metrics_map[$label]) ? $user_metrics_map[$label] : 'no-data';
             $score = 0;
             if ($val === 'bueno' || $val === '2.5') {
@@ -138,11 +274,13 @@ function storytelling_dashboard_page() {
                 $score = 5;
             }
 
-            if ($val !== 'no-data') {
+            if ($val !== 'no-data' && $val !== '') {
                 $stats['radar_metrics'][$label]['total'] += $score;
                 $stats['radar_metrics'][$label]['count']++;
+                $participant_scores[] = $score;
+            } else {
+                $participant_scores[] = null;
             }
-            $participant_scores[] = $score;
         }
 
         $stats['radar_participants'][] = array(
@@ -165,8 +303,8 @@ function storytelling_dashboard_page() {
 
     // Calculate final radar averages
     foreach ($stats['radar_metrics'] as $label => $data) {
-        $avg = $data['count'] > 0 ? ($data['total'] / $data['count']) : 0;
-        $stats['radar_metrics'][$label] = floatval(number_format($avg, 2));
+        $avg = $data['count'] > 0 ? floatval(number_format($data['total'] / $data['count'], 2)) : null;
+        $stats['radar_metrics'][$label] = $avg;
     }
 
     ?>
@@ -266,6 +404,12 @@ function storytelling_registros_page() {
         );
 
         $dynamic_metrics_array = array();
+        $all_metric_names = array(
+            'm_lenguaje_no_verbal', 'm_dirige_entrevista', 'm_mensajes', 
+            'm_preguntas_incisivas', 'm_frases_citables', 'm_usa_datos', 'm_habla_valores'
+        );
+        $included_array = isset($_POST['include_metric']) && is_array($_POST['include_metric']) ? $_POST['include_metric'] : array();
+
         if (isset($_POST['dynamic_metric_name']) && is_array($_POST['dynamic_metric_name'])) {
             foreach ($_POST['dynamic_metric_name'] as $index => $name) {
                 $n = sanitize_text_field($name);
@@ -273,10 +417,22 @@ function storytelling_registros_page() {
                 $v = sanitize_text_field($isset_val);
                 if (!empty($n)) {
                     $dynamic_metrics_array[] = array('name' => $n, 'value' => $v);
+                    $all_metric_names[] = $n;
+                    if (isset($_POST['include_dynamic_metric'][$index])) {
+                        $included_array[] = $n;
+                    }
                 }
             }
         }
         $data['dynamic_metrics'] = wp_json_encode($dynamic_metrics_array);
+
+        $excluded_metrics = array();
+        foreach ($all_metric_names as $mn) {
+            if (!in_array($mn, $included_array)) {
+                $excluded_metrics[] = $mn;
+            }
+        }
+        $data['excluded_metrics'] = wp_json_encode($excluded_metrics);
 
         // Handle Photo Upload
         if ( ! empty( $_FILES['photo']['name'] ) ) {
@@ -430,6 +586,19 @@ function storytelling_registros_page() {
                     </tr>
 
 
+                    <?php 
+                    $excluded_opts = array();
+                    if (!empty($row->excluded_metrics)) {
+                        $decoded = json_decode($row->excluded_metrics, true);
+                        if (is_array($decoded)) {
+                            $excluded_opts = $decoded;
+                        }
+                    }
+                    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
+                    if (is_array($global_excluded)) {
+                        $excluded_opts = array_merge($excluded_opts, $global_excluded);
+                    }
+                    ?>
                     <tr>
                         <th colspan="2"><h3>Métricas</h3></th>
                     </tr>
@@ -442,6 +611,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_lenguaje_no_verbal ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_lenguaje_no_verbal ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_lenguaje_no_verbal" <?php checked(!in_array('m_lenguaje_no_verbal', $excluded_opts), true); ?> <?php echo in_array('m_lenguaje_no_verbal', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_lenguaje_no_verbal', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -453,6 +626,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_dirige_entrevista ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_dirige_entrevista ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_dirige_entrevista" <?php checked(!in_array('m_dirige_entrevista', $excluded_opts), true); ?> <?php echo in_array('m_dirige_entrevista', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_dirige_entrevista', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -464,6 +641,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_mensajes ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_mensajes ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_mensajes" <?php checked(!in_array('m_mensajes', $excluded_opts), true); ?> <?php echo in_array('m_mensajes', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_mensajes', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -475,6 +656,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_preguntas_incisivas ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_preguntas_incisivas ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_preguntas_incisivas" <?php checked(!in_array('m_preguntas_incisivas', $excluded_opts), true); ?> <?php echo in_array('m_preguntas_incisivas', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_preguntas_incisivas', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -486,6 +671,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_frases_citables ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_frases_citables ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_frases_citables" <?php checked(!in_array('m_frases_citables', $excluded_opts), true); ?> <?php echo in_array('m_frases_citables', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_frases_citables', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -497,6 +686,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_usa_datos ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_usa_datos ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_usa_datos" <?php checked(!in_array('m_usa_datos', $excluded_opts), true); ?> <?php echo in_array('m_usa_datos', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_usa_datos', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
                     <tr>
@@ -508,6 +701,10 @@ function storytelling_registros_page() {
                                 <option value="bueno" <?php selected( $row->m_habla_valores ?? '', 'bueno' ); ?>>Buen vocero/a</option>
                                 <option value="experto" <?php selected( $row->m_habla_valores ?? '', 'experto' ); ?>>Experto/a</option>
                             </select>
+                            <label style="margin-left: 10px;">
+                                <input type="checkbox" name="include_metric[]" value="m_habla_valores" <?php checked(!in_array('m_habla_valores', $excluded_opts), true); ?> <?php echo in_array('m_habla_valores', $global_excluded) ? 'disabled' : ''; ?>>
+                                Incluir en promedio y gráfica <?php echo in_array('m_habla_valores', $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada global)</span>' : ''; ?>
+                            </label>
                         </td>
                     </tr>
 
@@ -520,6 +717,7 @@ function storytelling_registros_page() {
                                     if (!empty($row->dynamic_metrics)) {
                                         $d_metrics = json_decode($row->dynamic_metrics, true);
                                         if (is_array($d_metrics)) {
+                                            $dyn_index = 0;
                                             foreach($d_metrics as $dm) {
                                                 ?>
                                                 <div class="dynamic-metric-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
@@ -530,9 +728,13 @@ function storytelling_registros_page() {
                                                         <option value="bueno" <?php selected($dm['value'], 'bueno'); ?>>Buen vocero/a</option>
                                                         <option value="experto" <?php selected($dm['value'], 'experto'); ?>>Experto/a</option>
                                                     </select>
+                                                    <label style="margin-left: 10px;">
+                                                        <input type="checkbox" name="include_dynamic_metric[<?php echo $dyn_index; ?>]" value="1" <?php checked(!in_array($dm['name'], $excluded_opts), true); ?> <?php echo in_array($dm['name'], $global_excluded) ? 'disabled' : ''; ?>> Mostrar <?php echo in_array($dm['name'], $global_excluded) ? '<span style="color:#d63638;font-size:11px;">(Deshabilitada)</span>' : ''; ?>
+                                                    </label>
                                                     <button type="button" class="button remove-dynamic-metric">X</button>
                                                 </div>
                                                 <?php
+                                                $dyn_index++;
                                             }
                                         }
                                     }
@@ -542,6 +744,7 @@ function storytelling_registros_page() {
                             </div>
                             
                             <script>
+                                let dynamicMetricIndex = <?php echo (isset($d_metrics) && is_array($d_metrics)) ? count($d_metrics) : 0; ?>;
                                 document.getElementById('add-dynamic-metric').addEventListener('click', function() {
                                     const container = document.getElementById('dynamic-metrics-list');
                                     const row = document.createElement('div');
@@ -555,9 +758,13 @@ function storytelling_registros_page() {
                                             <option value="bueno">Buen vocero/a</option>
                                             <option value="experto">Experto/a</option>
                                         </select>
+                                        <label style="margin-left: 10px;">
+                                            <input type="checkbox" name="include_dynamic_metric[${dynamicMetricIndex}]" value="1" checked> Mostrar
+                                        </label>
                                         <button type="button" class="button remove-dynamic-metric">X</button>
                                     `;
                                     container.appendChild(row);
+                                    dynamicMetricIndex++;
                                 });
                                 
                                 document.getElementById('dynamic-metrics-list').addEventListener('click', function(e) {

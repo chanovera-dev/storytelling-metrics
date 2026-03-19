@@ -21,13 +21,13 @@ function storytelling_get_user_average($row) {
     if (!$row) return '0.00';
 
     $metrics = array(
-        isset($row->m_lenguaje_no_verbal) ? $row->m_lenguaje_no_verbal : 'no-data',
-        isset($row->m_dirige_entrevista) ? $row->m_dirige_entrevista : 'no-data',
-        isset($row->m_mensajes) ? $row->m_mensajes : 'no-data',
-        isset($row->m_preguntas_incisivas) ? $row->m_preguntas_incisivas : 'no-data',
-        isset($row->m_frases_citables) ? $row->m_frases_citables : 'no-data',
-        isset($row->m_usa_datos) ? $row->m_usa_datos : 'no-data',
-        isset($row->m_habla_valores) ? $row->m_habla_valores : 'no-data'
+        'm_lenguaje_no_verbal' => isset($row->m_lenguaje_no_verbal) ? $row->m_lenguaje_no_verbal : 'no-data',
+        'm_dirige_entrevista' => isset($row->m_dirige_entrevista) ? $row->m_dirige_entrevista : 'no-data',
+        'm_mensajes' => isset($row->m_mensajes) ? $row->m_mensajes : 'no-data',
+        'm_preguntas_incisivas' => isset($row->m_preguntas_incisivas) ? $row->m_preguntas_incisivas : 'no-data',
+        'm_frases_citables' => isset($row->m_frases_citables) ? $row->m_frases_citables : 'no-data',
+        'm_usa_datos' => isset($row->m_usa_datos) ? $row->m_usa_datos : 'no-data',
+        'm_habla_valores' => isset($row->m_habla_valores) ? $row->m_habla_valores : 'no-data'
     );
 
     if (!empty($row->dynamic_metrics)) {
@@ -35,22 +35,44 @@ function storytelling_get_user_average($row) {
         if (is_array($dynamic)) {
             foreach ($dynamic as $dm) {
                 if (isset($dm['value'])) {
-                    $metrics[] = $dm['value'];
+                    // We also need the name to check if excluded
+                    $metrics[$dm['name']] = $dm['value'];
                 }
             }
         }
     }
     
-    $total = 0;
-    foreach ($metrics as $m) {
-        if ($m === 'bueno' || $m === '2.5') {
-            $total += 2.5;
-        } elseif ($m === 'experto' || $m === '5') {
-            $total += 5;
+    $excluded = array();
+    if (!empty($row->excluded_metrics)) {
+        $decoded = json_decode($row->excluded_metrics, true);
+        if (is_array($decoded)) {
+            $excluded = $decoded;
         }
     }
     
-    $count = count($metrics);
+    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
+    if (is_array($global_excluded)) {
+        $excluded = array_merge($excluded, $global_excluded);
+    }
+    
+    $total = 0;
+    $count = 0;
+    foreach ($metrics as $metric_name => $m) {
+        if (in_array($metric_name, $excluded)) {
+            continue; // Skip this metric for average
+        }
+
+        if ($m === 'bueno' || $m === '2.5') {
+            $total += 2.5;
+            $count++;
+        } elseif ($m === 'experto' || $m === '5') {
+            $total += 5;
+            $count++;
+        } elseif ($m !== 'no-data' && $m !== '') {
+            $count++;
+        }
+    }
+    
     $avg = $count > 0 ? ($total / $count) : 0;
     return number_format($avg, 2);
 }
@@ -130,6 +152,11 @@ function storytelling_update_db_check() {
     $column_dyn = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'dynamic_metrics'");
     if (empty($column_dyn)) {
         $wpdb->query("ALTER TABLE $table_name ADD dynamic_metrics text AFTER m_habla_valores");
+    }
+
+    $col_ex_metrics = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'excluded_metrics'");
+    if (empty($col_ex_metrics)) {
+        $wpdb->query("ALTER TABLE $table_name ADD excluded_metrics text AFTER dynamic_metrics");
     }
 }
 add_action('admin_init', 'storytelling_update_db_check');
@@ -219,6 +246,7 @@ function storytelling_create_db_table() {
 		m_usa_datos varchar(100) DEFAULT 'no-data',
 		m_habla_valores varchar(100) DEFAULT 'no-data',
 		dynamic_metrics text,
+		excluded_metrics text,
 
 		is_active tinyint(1) DEFAULT 1,
 		created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,

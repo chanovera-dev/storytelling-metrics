@@ -34,6 +34,19 @@ function storytelling_handle_submission() {
         'm_habla_valores'        => sanitize_text_field( $_POST['m_habla_valores'] ),
     );
 
+    $all_metric_names = array(
+        'm_lenguaje_no_verbal', 'm_dirige_entrevista', 'm_mensajes', 
+        'm_preguntas_incisivas', 'm_frases_citables', 'm_usa_datos', 'm_habla_valores'
+    );
+    $included_array = isset($_POST['include_metric']) && is_array($_POST['include_metric']) ? $_POST['include_metric'] : array();
+    $excluded_metrics = array();
+    foreach ($all_metric_names as $mn) {
+        if (!in_array($mn, $included_array)) {
+            $excluded_metrics[] = $mn;
+        }
+    }
+    $data['excluded_metrics'] = wp_json_encode($excluded_metrics);
+
     // Handle Photo Upload
     if ( ! empty( $_FILES['photo']['name'] ) ) {
         require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -112,6 +125,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_lenguaje_no_verbal" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_dirige_entrevista">Dirige la entrevista (guía la conversación hacia sus temas o se limita a responder preguntas)</label>
@@ -121,6 +135,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_dirige_entrevista" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_mensajes">Transmite mensajes memorables, únicos, relevantes</label>
@@ -130,6 +145,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_mensajes" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_preguntas_incisivas">Maneja bien las preguntas incisivas</label>
@@ -139,6 +155,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_preguntas_incisivas" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_frases_citables">Ofrece frases citables, soundbites</label>
@@ -148,6 +165,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_frases_citables" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_usa_datos">Usa datos, cifras, ejemplos, visualización</label>
@@ -157,6 +175,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_usa_datos" checked> Incluir en promedio y gráfica</label></div>
                 </div>
                 <div class="form-group">
                     <label for="m_habla_valores">Habla de valores, puntos de vista personal, historias</label>
@@ -166,6 +185,7 @@ function storytelling_render_form() {
                         <option value="bueno">Buen vocero/a</option>
                         <option value="experto">Experto/a</option>
                     </select>
+                    <div><label style="font-weight:normal; font-size: 0.9em;"><input type="checkbox" name="include_metric[]" value="m_habla_valores" checked> Incluir en promedio y gráfica</label></div>
                 </div>
             </fieldset>
 
