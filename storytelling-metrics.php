@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Nivel de storytelling para líderes
  * Description: Gestión del nivel de storytelling para líderes, formulario de registro, dashboard con estadísticas y exportación a PDF.
- * Version: 1.2.0
+ * Version: 1.2.1
  * Author: ChanoDEV
  * Text Domain: storytelling-levels
  * License: GPL2
@@ -85,7 +85,7 @@ function storytelling_sync_participant_cpt($row) {
             'contact_otros'         => 'others',
             'personal_opinion'      => 'observations',
             'ranking_personal'      => 'personal_ranking',
-            'ranking_institucional' => 'institucional_ranking',
+            'ranking_institutional' => 'institutional_ranking',
             'm_lenguaje_no_verbal'  => 'no_verbal_language',
             'm_dirige_entrevista'   => 'manage_interview',
             'm_mensajes'            => 'memorable_messages',
@@ -260,9 +260,14 @@ function storytelling_update_db_check() {
         $wpdb->query("ALTER TABLE $table_name ADD ranking_personal varchar(100) AFTER contact_otros");
     }
 
-    $col_rank_i = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'ranking_institucional'");
-    if (empty($col_rank_i)) {
-        $wpdb->query("ALTER TABLE $table_name ADD ranking_institucional varchar(100) AFTER ranking_personal");
+    $col_rank_old = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'ranking_institucional'");
+    if (!empty($col_rank_old)) {
+        $wpdb->query("ALTER TABLE $table_name CHANGE COLUMN ranking_institucional ranking_institutional varchar(100)");
+    } else {
+        $col_rank_i = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'ranking_institutional'");
+        if (empty($col_rank_i)) {
+            $wpdb->query("ALTER TABLE $table_name ADD ranking_institutional varchar(100) AFTER ranking_personal");
+        }
     }
 
     $column10 = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'personal_opinion'");
@@ -356,7 +361,7 @@ function storytelling_create_db_table() {
 		position_cargo varchar(255),
 		contact_otros text,
 		ranking_personal varchar(100),
-		ranking_institucional varchar(100),
+		ranking_institutional varchar(100),
 		personal_opinion text,
 		industry varchar(100),
 		m_lenguaje_no_verbal varchar(100) DEFAULT 'no-data',

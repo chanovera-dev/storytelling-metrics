@@ -419,7 +419,7 @@ function storytelling_registros_page() {
             'position_cargo'      => sanitize_text_field( $_POST['position_cargo'] ),
             'contact_otros'       => sanitize_textarea_field( $_POST['contact_otros'] ),
             'ranking_personal'    => sanitize_text_field( $_POST['ranking_personal'] ?? '' ),
-            'ranking_institucional'=> sanitize_text_field( $_POST['ranking_institucional'] ?? '' ),
+            'ranking_institutional'=> sanitize_text_field( $_POST['ranking_institutional'] ?? '' ),
             'personal_opinion'    => sanitize_textarea_field( $_POST['personal_opinion'] ),
             'm_lenguaje_no_verbal'=> sanitize_text_field( $_POST['m_lenguaje_no_verbal'] ),
             'm_dirige_entrevista' => sanitize_text_field( $_POST['m_dirige_entrevista'] ),
@@ -518,9 +518,9 @@ function storytelling_registros_page() {
                     <p><strong>Nombre:</strong> <?php echo esc_html( $row->full_name ); ?></p>
                     <p><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></p>
                     <p><strong>Ranking de reputación personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></p>
-                    <p><strong>Ranking de reputación institucional:</strong> <?php echo esc_html( $row->ranking_institucional ?? '' ); ?></p>
-                    <p><strong>Otros:</strong> <br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></p>
-                    <p><strong>Observaciones:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
+                    <p><strong>Ranking de reputación institucional:</strong> <?php echo esc_html( $row->ranking_institutional ?? '' ); ?></p>
+                    <p><strong>Presencia y dominio escénico:</strong> <br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></p>
+                    <p><strong>Desempeño retórico y contenidos:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
 
 
                     <hr>
@@ -607,19 +607,19 @@ function storytelling_registros_page() {
                         <td><input type="text" name="position_cargo" value="<?php echo esc_attr( $row->position_cargo ?? '' ); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
-                        <th><label>Otros</label></th>
-                        <td><textarea name="contact_otros" class="large-text" rows="3"><?php echo esc_textarea( $row->contact_otros ?? '' ); ?></textarea></td>
-                    </tr>
-                    <tr>
                         <th><label>Ranking de reputación personal</label></th>
                         <td><input type="text" name="ranking_personal" value="<?php echo esc_attr( $row->ranking_personal ?? '' ); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th><label>Ranking de reputación institucional</label></th>
-                        <td><input type="text" name="ranking_institucional" value="<?php echo esc_attr( $row->ranking_institucional ?? '' ); ?>" class="regular-text"></td>
+                        <td><input type="text" name="ranking_institutional" value="<?php echo esc_attr( $row->ranking_institutional ?? '' ); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
-                        <th><label>Observaciones</label></th>
+                        <th><label>Presencia y dominio escénico</label></th>
+                        <td><textarea name="contact_otros" class="large-text" rows="3"><?php echo esc_textarea( $row->contact_otros ?? '' ); ?></textarea></td>
+                    </tr>
+                    <tr>
+                        <th><label>Desempeño retórico y contenidos</label></th>
                         <td><textarea name="personal_opinion" class="large-text" rows="3"><?php echo esc_textarea( $row->personal_opinion ?? '' ); ?></textarea></td>
                     </tr>
 
