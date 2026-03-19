@@ -112,6 +112,16 @@ function storytelling_update_db_check() {
         $wpdb->query("ALTER TABLE $table_name ADD contact_otros text AFTER position_cargo");
     }
 
+    $col_rank_p = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'ranking_personal'");
+    if (empty($col_rank_p)) {
+        $wpdb->query("ALTER TABLE $table_name ADD ranking_personal varchar(100) AFTER contact_otros");
+    }
+
+    $col_rank_i = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'ranking_institucional'");
+    if (empty($col_rank_i)) {
+        $wpdb->query("ALTER TABLE $table_name ADD ranking_institucional varchar(100) AFTER ranking_personal");
+    }
+
     $column10 = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'personal_opinion'");
     if (empty($column10)) {
         $wpdb->query("ALTER TABLE $table_name ADD personal_opinion text AFTER contact_otros");
@@ -197,6 +207,8 @@ function storytelling_create_db_table() {
 		full_name varchar(255) NOT NULL,
 		position_cargo varchar(255),
 		contact_otros text,
+		ranking_personal varchar(100),
+		ranking_institucional varchar(100),
 		personal_opinion text,
 		industry varchar(100),
 		m_lenguaje_no_verbal varchar(100) DEFAULT 'no-data',

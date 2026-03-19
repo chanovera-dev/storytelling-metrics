@@ -75,6 +75,8 @@ function storytelling_render_record_pdf( $row ) {
             <div class="grid">
                 <div class="item"><strong>Nombre Completo:</strong> <?php echo esc_html( $row->full_name ); ?></div>
                 <div class="item"><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></div>
+                <div class="item"><strong>Ranking Personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></div>
+                <div class="item"><strong>Ranking Institucional:</strong> <?php echo esc_html( $row->ranking_institucional ?? '' ); ?></div>
                 <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Otros:</strong><br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></div>
                 <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Observaciones:</strong><br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></div>
             </div>
@@ -190,6 +192,26 @@ function storytelling_render_record_pdf( $row ) {
 
 function storytelling_render_global_pdf() {
     $all_data = Storytelling_DB::get_all_data();
+
+    // Sort by ranking_personal ascending
+    usort($all_data, function($a, $b) {
+        $rank_a = isset($a->ranking_personal) ? trim($a->ranking_personal) : '';
+        $rank_b = isset($b->ranking_personal) ? trim($b->ranking_personal) : '';
+        
+        // Put empty at the bottom
+        if ($rank_a === '' && $rank_b === '') return 0;
+        if ($rank_a === '') return 1;
+        if ($rank_b === '') return -1;
+        
+        // Numeric sort
+        if (is_numeric($rank_a) && is_numeric($rank_b)) {
+            if ((float)$rank_a == (float)$rank_b) return 0;
+            return ((float)$rank_a < (float)$rank_b) ? -1 : 1;
+        }
+        
+        // Alpha-numeric sort if text
+        return strnatcasecmp($rank_a, $rank_b);
+    });
     ?>
     <!DOCTYPE html>
     <html lang="es">
@@ -242,6 +264,8 @@ function storytelling_render_global_pdf() {
                     <div class="data-col"><strong>Industria</strong><?php echo esc_html($row->industry); ?></div>
                     <div class="data-col"><strong>Contacto</strong><?php echo esc_html($row->full_name); ?></div>
                     <div class="data-col"><strong>Cargo</strong> <?php echo esc_html($row->position_cargo); ?></div>
+                    <div class="data-col"><strong>Ranking Personal</strong> <?php echo esc_html($row->ranking_personal ?? ''); ?></div>
+                    <div class="data-col"><strong>Ranking Institucional</strong> <?php echo esc_html($row->ranking_institucional ?? ''); ?></div>
                     <div class="data-col full" style="margin-top: 10px;"><strong>Otros</strong> <?php echo nl2br(esc_html($row->contact_otros)); ?></div>
                     <div class="data-col full" style="margin-top: 10px;"><strong>Observaciones</strong> <?php echo nl2br(esc_html($row->personal_opinion)); ?></div>
                 </div>

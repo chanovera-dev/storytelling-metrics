@@ -252,6 +252,8 @@ function storytelling_registros_page() {
             'full_name'           => sanitize_text_field( $_POST['full_name'] ),
             'position_cargo'      => sanitize_text_field( $_POST['position_cargo'] ),
             'contact_otros'       => sanitize_textarea_field( $_POST['contact_otros'] ),
+            'ranking_personal'    => sanitize_text_field( $_POST['ranking_personal'] ?? '' ),
+            'ranking_institucional'=> sanitize_text_field( $_POST['ranking_institucional'] ?? '' ),
             'personal_opinion'    => sanitize_textarea_field( $_POST['personal_opinion'] ),
             'm_lenguaje_no_verbal'=> sanitize_text_field( $_POST['m_lenguaje_no_verbal'] ),
             'm_dirige_entrevista' => sanitize_text_field( $_POST['m_dirige_entrevista'] ),
@@ -321,6 +323,8 @@ function storytelling_registros_page() {
                     <h3>Contacto</h3>
                     <p><strong>Nombre:</strong> <?php echo esc_html( $row->full_name ); ?></p>
                     <p><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></p>
+                    <p><strong>Ranking de reputación personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></p>
+                    <p><strong>Ranking de reputación institucional:</strong> <?php echo esc_html( $row->ranking_institucional ?? '' ); ?></p>
                     <p><strong>Otros:</strong> <br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></p>
                     <p><strong>Observaciones:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
 
@@ -411,6 +415,14 @@ function storytelling_registros_page() {
                     <tr>
                         <th><label>Otros</label></th>
                         <td><textarea name="contact_otros" class="large-text" rows="3"><?php echo esc_textarea( $row->contact_otros ?? '' ); ?></textarea></td>
+                    </tr>
+                    <tr>
+                        <th><label>Ranking de reputación personal</label></th>
+                        <td><input type="text" name="ranking_personal" value="<?php echo esc_attr( $row->ranking_personal ?? '' ); ?>" class="regular-text"></td>
+                    </tr>
+                    <tr>
+                        <th><label>Ranking de reputación institucional</label></th>
+                        <td><input type="text" name="ranking_institucional" value="<?php echo esc_attr( $row->ranking_institucional ?? '' ); ?>" class="regular-text"></td>
                     </tr>
                     <tr>
                         <th><label>Observaciones</label></th>
@@ -584,6 +596,22 @@ function storytelling_registros_page() {
     } else {
         $all_data = $all_data_all;
     }
+
+    usort($all_data, function($a, $b) {
+        $rank_a = isset($a->ranking_personal) ? trim($a->ranking_personal) : '';
+        $rank_b = isset($b->ranking_personal) ? trim($b->ranking_personal) : '';
+        
+        if ($rank_a === '' && $rank_b === '') return 0;
+        if ($rank_a === '') return 1;
+        if ($rank_b === '') return -1;
+        
+        if (is_numeric($rank_a) && is_numeric($rank_b)) {
+            if ((float)$rank_a == (float)$rank_b) return 0;
+            return ((float)$rank_a < (float)$rank_b) ? -1 : 1;
+        }
+        
+        return strnatcasecmp($rank_a, $rank_b);
+    });
     ?>
     <div class="wrap">
         <h1 class="wp-heading-inline">Registros de Storytelling Manager</h1>
