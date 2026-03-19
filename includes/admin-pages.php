@@ -36,8 +36,8 @@ function storytelling_admin_menu() {
 
     add_submenu_page(
         'storytelling-manager',
-        'Configuraciones',
-        'Configuraciones',
+        'Ajustes',
+        'Ajustes',
         'manage_options',
         'storytelling-settings',
         'storytelling_settings_page'
@@ -108,10 +108,13 @@ function storytelling_settings_page() {
                         <th scope="row"><?php echo esc_html($label); ?></th>
                         <td>
                             <input type="hidden" name="known_metrics[]" value="<?php echo esc_attr($key); ?>">
-                            <label>
-                                <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($key); ?>" <?php checked(!in_array($key, $global_excluded), true); ?>>
-                                Habilitada (promedios y gráficas)
-                            </label>
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <label class="apple-switch">
+                                    <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($key); ?>" <?php checked(!in_array($key, $global_excluded), true); ?>>
+                                    <span class="slider"></span>
+                                </label>
+                                <span>Habilitada (promedios y gráficas)</span>
+                            </div>
                         </td>
                     </tr>
                 <?php endforeach; ?>
@@ -125,10 +128,13 @@ function storytelling_settings_page() {
                             <th scope="row"><?php echo esc_html($dyn_name); ?></th>
                             <td>
                                 <input type="hidden" name="known_metrics[]" value="<?php echo esc_attr($dyn_name); ?>">
-                                <label>
-                                    <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($dyn_name); ?>" <?php checked(!in_array($dyn_name, $global_excluded), true); ?>>
-                                    Habilitada
-                                </label>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <label class="apple-switch">
+                                        <input type="checkbox" name="global_include_metric[]" value="<?php echo esc_attr($dyn_name); ?>" <?php checked(!in_array($dyn_name, $global_excluded), true); ?>>
+                                        <span class="slider"></span>
+                                    </label>
+                                    <span>Habilitada</span>
+                                </div>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -136,7 +142,7 @@ function storytelling_settings_page() {
 
             </table>
             <p class="submit">
-                <input type="submit" name="storytelling_save_settings" class="button button-primary" value="Guardar Configuraciones">
+                <input type="submit" name="storytelling_save_settings" class="button button-primary" value="Guardar Ajustes">
             </p>
         </form>
     </div>

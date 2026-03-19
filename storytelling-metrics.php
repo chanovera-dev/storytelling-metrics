@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Nivel de storytelling para líderes
  * Description: Gestión del nivel de storytelling para líderes, formulario de registro, dashboard con estadísticas y exportación a PDF.
- * Version: 1.0.0
+ * Version: 1.1.0
  * Author: ChanoDEV
  * Text Domain: storytelling-levels
  * License: GPL2
@@ -187,7 +187,7 @@ function storytelling_toggle_active_callback() {
  * Enqueue scripts and styles.
  */
 function storytelling_enqueue_assets() {
-    wp_enqueue_style( 'storytelling-style', STORYTELLING_URL . 'assets/css/style.css' );
+    wp_enqueue_style( 'storytelling-style', STORYTELLING_URL . 'assets/css/style.css', array(), filemtime( STORYTELLING_PATH . 'assets/css/style.css' ) );
 }
 add_action( 'wp_enqueue_scripts', 'storytelling_enqueue_assets' );
 
@@ -197,8 +197,8 @@ function storytelling_admin_assets( $hook ) {
         return;
     }
     wp_enqueue_script( 'apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', array(), '3.45.1', true );
-    wp_enqueue_script( 'storytelling-admin-js', STORYTELLING_URL . 'assets/js/admin-dashboard.js', array( 'apexcharts' ), '1.0.0', true );
-    wp_enqueue_style( 'storytelling-admin-style', STORYTELLING_URL . 'assets/css/style.css' );
+    wp_enqueue_script( 'storytelling-admin-js', STORYTELLING_URL . 'assets/js/admin-dashboard.js', array( 'apexcharts' ), filemtime( STORYTELLING_PATH . 'assets/js/admin-dashboard.js' ), true );
+    wp_enqueue_style( 'storytelling-admin-style', STORYTELLING_URL . 'assets/css/style.css', array(), filemtime( STORYTELLING_PATH . 'assets/css/style.css' ) );
     
     // Pass nonce to admin JS
     wp_localize_script( 'storytelling-admin-js', 'storytellingManagerAdmin', array(
