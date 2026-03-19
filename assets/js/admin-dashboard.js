@@ -1,11 +1,11 @@
 /**
- * Crisis Manager Admin Dashboard Charts and Interactive elements
+ * Storytelling Manager Admin Dashboard Charts and Interactive elements
  */
 document.addEventListener('DOMContentLoaded', function () {
 
     // --- Dashboard Charts logic ---
-    if (typeof crisisManagerStats !== 'undefined') {
-        const stats = crisisManagerStats;
+    if (typeof storytellingManagerStats !== 'undefined') {
+        const stats = storytellingManagerStats;
         const colors = ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#9966FF', '#FF9F40', '#C9CBCF', '#46BFBD'];
 
         function createChart(id, listId, data) {
@@ -291,32 +291,32 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // --- Toggle Active Status AJAX (Works on both Dashboard and Registros if buttons exist) ---
-    const toggleButtons = document.querySelectorAll('.crisis-toggle-active');
+    const toggleButtons = document.querySelectorAll('.storytelling-toggle-active');
     if (toggleButtons.length > 0) {
         toggleButtons.forEach(checkbox => {
             checkbox.addEventListener('change', function () {
                 const id = this.getAttribute('data-id');
                 const isActive = this.checked ? 1 : 0;
 
-                if (typeof crisisManagerAdmin === 'undefined') {
-                    console.error('Crisis Manager admin object not found');
+                if (typeof storytellingManagerAdmin === 'undefined') {
+                    console.error('Storytelling Manager admin object not found');
                     return;
                 }
 
                 // Visual feedback on the container
-                const container = this.closest('.crisis-switch') || this;
+                const container = this.closest('.storytelling-switch') || this;
                 container.style.opacity = '0.5';
 
-                fetch(crisisManagerAdmin.ajax_url, {
+                fetch(storytellingManagerAdmin.ajax_url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded',
                     },
                     body: new URLSearchParams({
-                        action: 'crisis_toggle_active',
+                        action: 'storytelling_toggle_active',
                         id: id,
                         is_active: isActive,
-                        security: crisisManagerAdmin.nonce
+                        security: storytellingManagerAdmin.nonce
                     })
                 })
                     .then(response => response.json())

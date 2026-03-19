@@ -14,10 +14,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 // Define constants
-define( 'CRISIS_PATH', plugin_dir_path( __FILE__ ) );
-define( 'CRISIS_URL', plugin_dir_url( __FILE__ ) );
+define( 'STORYTELLING_PATH', plugin_dir_path( __FILE__ ) );
+define( 'STORYTELLING_URL', plugin_dir_url( __FILE__ ) );
 
-function crisis_get_user_average($row) {
+function storytelling_get_user_average($row) {
     if (!$row) return '0.00';
 
     $metrics = array(
@@ -29,30 +29,42 @@ function crisis_get_user_average($row) {
         isset($row->m_usa_datos) ? $row->m_usa_datos : 'no-data',
         isset($row->m_habla_valores) ? $row->m_habla_valores : 'no-data'
     );
+
+    if (!empty($row->dynamic_metrics)) {
+        $dynamic = json_decode($row->dynamic_metrics, true);
+        if (is_array($dynamic)) {
+            foreach ($dynamic as $dm) {
+                if (isset($dm['value'])) {
+                    $metrics[] = $dm['value'];
+                }
+            }
+        }
+    }
     
     $total = 0;
     foreach ($metrics as $m) {
-        if ($m === 'bueno') {
+        if ($m === 'bueno' || $m === '2.5') {
             $total += 2.5;
-        } elseif ($m === 'experto') {
+        } elseif ($m === 'experto' || $m === '5') {
             $total += 5;
         }
     }
     
-    $avg = $total / count($metrics);
+    $count = count($metrics);
+    $avg = $count > 0 ? ($total / $count) : 0;
     return number_format($avg, 2);
 }
 
 // Include required files
-require_once CRISIS_PATH . 'includes/db-handler.php';
-require_once CRISIS_PATH . 'includes/form-handler.php';
-require_once CRISIS_PATH . 'includes/admin-pages.php';
-require_once CRISIS_PATH . 'includes/pdf-generator.php';
+require_once STORYTELLING_PATH . 'includes/db-handler.php';
+require_once STORYTELLING_PATH . 'includes/form-handler.php';
+require_once STORYTELLING_PATH . 'includes/admin-pages.php';
+require_once STORYTELLING_PATH . 'includes/pdf-generator.php';
 
 // Ensure database column exists
-function crisis_update_db_check() {
+function storytelling_update_db_check() {
     global $wpdb;
-    $table_name = $wpdb->prefix . 'crisis_management_data';
+    $table_name = $wpdb->prefix . 'storytelling_management_data';
     $column = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'is_active'");
     if (empty($column)) {
         $wpdb->query("ALTER TABLE $table_name ADD is_active tinyint(1) DEFAULT 1 AFTER drill_frequency");
@@ -104,22 +116,27 @@ function crisis_update_db_check() {
     if (empty($column10)) {
         $wpdb->query("ALTER TABLE $table_name ADD personal_opinion text AFTER contact_otros");
     }
+
+    $column_dyn = $wpdb->get_results("SHOW COLUMNS FROM $table_name LIKE 'dynamic_metrics'");
+    if (empty($column_dyn)) {
+        $wpdb->query("ALTER TABLE $table_name ADD dynamic_metrics text AFTER m_habla_valores");
+    }
 }
-add_action('admin_init', 'crisis_update_db_check');
+add_action('admin_init', 'storytelling_update_db_check');
 
 /**
  * AJAX Toggle Active Status
  */
-add_action( 'wp_ajax_crisis_toggle_active', 'crisis_toggle_active_callback' );
-function crisis_toggle_active_callback() {
-    check_ajax_referer( 'crisis_admin_nonce', 'security' );
+add_action( 'wp_ajax_storytelling_toggle_active', 'storytelling_toggle_active_callback' );
+function storytelling_toggle_active_callback() {
+    check_ajax_referer( 'storytelling_admin_nonce', 'security' );
     if ( ! current_user_can( 'manage_options' ) ) wp_die();
 
     $id = intval( $_POST['id'] );
     $is_active = intval( $_POST['is_active'] );
 
     global $wpdb;
-    $table_name = $wpdb->prefix . 'crisis_management_data';
+    $table_name = $wpdb->prefix . 'storytelling_management_data';
     $updated = $wpdb->update( $table_name, array( 'is_active' => $is_active ), array( 'id' => $id ) );
     
     if ( $updated !== false ) {
@@ -132,45 +149,45 @@ function crisis_toggle_active_callback() {
 /**
  * Enqueue scripts and styles.
  */
-function crisis_enqueue_assets() {
-    wp_enqueue_style( 'crisis-style', CRISIS_URL . 'assets/css/style.css' );
+function storytelling_enqueue_assets() {
+    wp_enqueue_style( 'storytelling-style', STORYTELLING_URL . 'assets/css/style.css' );
 }
-add_action( 'wp_enqueue_scripts', 'crisis_enqueue_assets' );
+add_action( 'wp_enqueue_scripts', 'storytelling_enqueue_assets' );
 
-function crisis_admin_assets( $hook ) {
+function storytelling_admin_assets( $hook ) {
     // Only load on plugin pages
-    if ( strpos( $hook, 'crisis' ) === false ) {
+    if ( strpos( $hook, 'storytelling' ) === false ) {
         return;
     }
     wp_enqueue_script( 'apexcharts', 'https://cdn.jsdelivr.net/npm/apexcharts', array(), '3.45.1', true );
-    wp_enqueue_script( 'crisis-admin-js', CRISIS_URL . 'assets/js/admin-dashboard.js', array( 'apexcharts' ), '1.0.0', true );
-    wp_enqueue_style( 'crisis-admin-style', CRISIS_URL . 'assets/css/style.css' );
+    wp_enqueue_script( 'storytelling-admin-js', STORYTELLING_URL . 'assets/js/admin-dashboard.js', array( 'apexcharts' ), '1.0.0', true );
+    wp_enqueue_style( 'storytelling-admin-style', STORYTELLING_URL . 'assets/css/style.css' );
     
     // Pass nonce to admin JS
-    wp_localize_script( 'crisis-admin-js', 'crisisManagerAdmin', array(
+    wp_localize_script( 'storytelling-admin-js', 'storytellingManagerAdmin', array(
         'ajax_url' => admin_url( 'admin-ajax.php' ),
-        'nonce'    => wp_create_nonce( 'crisis_admin_nonce' )
+        'nonce'    => wp_create_nonce( 'storytelling_admin_nonce' )
     ) );
 }
-add_action( 'admin_enqueue_scripts', 'crisis_admin_assets' );
+add_action( 'admin_enqueue_scripts', 'storytelling_admin_assets' );
 
 // Activation Hook
-register_activation_hook( __FILE__, 'crisis_activate' );
+register_activation_hook( __FILE__, 'storytelling_activate' );
 
-function crisis_activate() {
+function storytelling_activate() {
 	// Create Database Table
-	crisis_create_db_table();
+	storytelling_create_db_table();
 
 	// Create Registration Page
-	crisis_create_registration_page();
+	storytelling_create_registration_page();
 }
 
 /**
  * Create the custom database table on activation.
  */
-function crisis_create_db_table() {
+function storytelling_create_db_table() {
 	global $wpdb;
-	$table_name = $wpdb->prefix . 'crisis_management_data';
+	$table_name = $wpdb->prefix . 'storytelling_management_data';
 	$charset_collate = $wpdb->get_charset_collate();
 
 	$sql = "CREATE TABLE $table_name (
@@ -189,6 +206,7 @@ function crisis_create_db_table() {
 		m_frases_citables varchar(100) DEFAULT 'no-data',
 		m_usa_datos varchar(100) DEFAULT 'no-data',
 		m_habla_valores varchar(100) DEFAULT 'no-data',
+		dynamic_metrics text,
 
 		is_active tinyint(1) DEFAULT 1,
 		created_at datetime DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -202,9 +220,9 @@ function crisis_create_db_table() {
 /**
  * Create the registration page if it doesn't exist.
  */
-function crisis_create_registration_page() {
-	$page_title = 'Registro Crisis Manager';
-	$page_content = '[crisis_registration_form]';
+function storytelling_create_registration_page() {
+	$page_title = 'Registro Storytelling Manager';
+	$page_content = '[storytelling_registration_form]';
 	
     // It's better to check by path or meta in a real scenario, but title is ok for now
 	$page_check = get_page_by_title( $page_title );

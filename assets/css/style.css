@@ -1,7 +1,7 @@
-/* Crisis Manag.r Styles */
+/* Storytelling Manag.r Styles */
 
 /* --- Frontend Form Styles --- */
-.crisis-form-wrapper {
+.storytelling-form-wrapper {
     max-width: 800px;
     margin: 20px auto;
     padding: 20px;
@@ -11,14 +11,14 @@
     font-family: sans-serif;
 }
 
-.crisis-form-wrapper fieldset {
+.storytelling-form-wrapper fieldset {
     border: 1px solid #ccc;
     padding: 15px;
     margin-bottom: 20px;
     border-radius: 5px;
 }
 
-.crisis-form-wrapper legend {
+.storytelling-form-wrapper legend {
     font-weight: bold;
     padding: 0 10px;
     color: #333;
@@ -46,7 +46,7 @@
     box-sizing: border-box;
 }
 
-.crisis-form-wrapper button {
+.storytelling-form-wrapper button {
     background: #0073aa;
     color: #fff;
     padding: 10px 20px;
@@ -56,7 +56,7 @@
     font-size: 16px;
 }
 
-.crisis-form-wrapper button:hover {
+.storytelling-form-wrapper button:hover {
     background: #005177;
 }
 
@@ -79,7 +79,7 @@
 }
 
 /* --- Admin Dashboard Styles --- */
-.crisis-charts-grid {
+.storytelling-charts-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
     gap: 40px;
@@ -173,14 +173,14 @@
 }
 
 /* Toggle Switch */
-.crisis-switch {
+.storytelling-switch {
     position: relative;
     display: inline-block;
     width: 40px;
     height: 20px;
 }
 
-.crisis-switch input {
+.storytelling-switch input {
     opacity: 0;
     width: 0;
     height: 0;

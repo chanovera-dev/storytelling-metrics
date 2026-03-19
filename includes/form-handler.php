@@ -3,20 +3,20 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_shortcode( 'crisis_registration_form', 'crisis_render_form' );
+add_shortcode( 'storytelling_registration_form', 'storytelling_render_form' );
 
 /**
  * Handle form submission.
  */
-function crisis_handle_submission() {
-    if ( ! isset( $_POST['crisis_submit'] ) ) {
+function storytelling_handle_submission() {
+    if ( ! isset( $_POST['storytelling_submit'] ) ) {
         return;
     }
 
     // Verify nonce for security (to be added)
     
     global $wpdb;
-    $table_name = Crisis_DB::get_table_name();
+    $table_name = Storytelling_DB::get_table_name();
 
     $data = array(
         'company_name'           => sanitize_text_field( $_POST['company_name'] ),
@@ -43,7 +43,7 @@ function crisis_handle_submission() {
         }
     }
 
-    $inserted = Crisis_DB::insert_data( $data );
+    $inserted = Storytelling_DB::insert_data( $data );
 
     if ( $inserted ) {
         add_filter( 'the_content', function( $content ) {
@@ -55,13 +55,13 @@ function crisis_handle_submission() {
         }, 1 );
     }
 }
-add_action( 'template_redirect', 'crisis_handle_submission' );
+add_action( 'template_redirect', 'storytelling_handle_submission' );
 
-function crisis_render_form() {
+function storytelling_render_form() {
     ob_start();
     ?>
-    <div class="crisis-form-wrapper">
-        <form id="crisis-registration-form" method="post" enctype="multipart/form-data">
+    <div class="storytelling-form-wrapper">
+        <form id="storytelling-registration-form" method="post" enctype="multipart/form-data">
             <!-- Company Info -->
             <fieldset>
                 <legend>Información de la Compañía</legend>
@@ -169,7 +169,7 @@ function crisis_render_form() {
                 </div>
             </fieldset>
 
-            <button type="submit" name="crisis_submit">Enviar Registro</button>
+            <button type="submit" name="storytelling_submit">Enviar Registro</button>
         </form>
     </div>
     <?php

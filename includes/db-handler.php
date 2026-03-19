@@ -4,12 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handle database operations for Crisis Manager.
+ * Handle database operations for Storytelling Manager.
  */
-class Crisis_DB {
+class Storytelling_DB {
     public static function get_table_name() {
         global $wpdb;
-        return $wpdb->prefix . 'crisis_management_data';
+        return $wpdb->prefix . 'storytelling_management_data';
     }
 
     public static function insert_data($data) {

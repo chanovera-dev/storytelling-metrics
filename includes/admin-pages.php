@@ -3,57 +3,83 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-add_action( 'admin_menu', 'crisis_admin_menu' );
+add_action( 'admin_menu', 'storytelling_admin_menu' );
 
-function crisis_admin_menu() {
+function storytelling_admin_menu() {
     add_menu_page(
-        'Crisis Manager',
-        'Crisis Manager',
+        'Storytelling Metrics',
+        'Storytelling Metrics',
         'manage_options',
-        'crisis-manager',
-        'crisis_dashboard_page',
+        'storytelling-manager',
+        'storytelling_dashboard_page',
         'dashicons-chart-pie',
         30
     );
 
     add_submenu_page(
-        'crisis-manager',
+        'storytelling-manager',
         'Dashboard de Estadísticas',
         'Estadísticas',
         'manage_options',
-        'crisis-manager',
-        'crisis_dashboard_page'
+        'storytelling-manager',
+        'storytelling_dashboard_page'
     );
 
     add_submenu_page(
-        'crisis-manager',
+        'storytelling-manager',
         'Listado de Registros',
         'Registros',
         'manage_options',
-        'crisis-registros',
-        'crisis_registros_page'
+        'storytelling-registros',
+        'storytelling_registros_page'
     );
 }
 
 
-function crisis_dashboard_page() {
-    $all_data = Crisis_DB::get_all_data();
+function storytelling_dashboard_page() {
+    $all_data = Storytelling_DB::get_all_data();
     
     // Prepare data for charts with company tracking
     $stats = array(
         'industry' => array(),
-        'radar_metrics' => array(
-            'Lenguaje no verbal' => array('total' => 0, 'count' => 0),
-            'Dirige la entrevista' => array('total' => 0, 'count' => 0),
-            'Mensajes memorables' => array('total' => 0, 'count' => 0),
-            'Preguntas incisivas' => array('total' => 0, 'count' => 0),
-            'Frases citables' => array('total' => 0, 'count' => 0),
-            'Usa datos, cifras' => array('total' => 0, 'count' => 0),
-            'Valores e historias' => array('total' => 0, 'count' => 0)
-        ),
+        'radar_metrics' => array(),
         'radar_participants' => array(),
         'monthly_growth' => array()
     );
+    // Step 1: Discover all global metric names across all users
+    $all_radar_labels = array(
+        'Lenguaje no verbal',
+        'Dirige la entrevista',
+        'Mensajes memorables',
+        'Preguntas incisivas',
+        'Frases citables',
+        'Usa datos, cifras',
+        'Valores e historias'
+    );
+
+    // Scan for dynamic metrics across all active rows
+    foreach ($all_data as $row) {
+        $is_active = isset($row->is_active) ? (int)$row->is_active : 1;
+        if (!$is_active) continue;
+
+        if (!empty($row->dynamic_metrics)) {
+            $dynamic = json_decode($row->dynamic_metrics, true);
+            if (is_array($dynamic)) {
+                foreach($dynamic as $dm) {
+                    if (!empty($dm['name']) && !in_array($dm['name'], $all_radar_labels)) {
+                        $all_radar_labels[] = $dm['name'];
+                    }
+                }
+            }
+        }
+    }
+
+    // Initialize global radar metric totals
+    foreach ($all_radar_labels as $label) {
+        $stats['radar_metrics'][$label] = array('total' => 0, 'count' => 0);
+    }
+
+    $stats['radar_participants'] = array();
 
     foreach ( $all_data as $row ) {
         // Default to active if the column doesn't exist or is NULL
@@ -61,6 +87,7 @@ function crisis_dashboard_page() {
         if ( ! $is_active ) {
             continue;
         }
+
         $fields = array(
             'industry' => $row->industry
         );
@@ -77,26 +104,44 @@ function crisis_dashboard_page() {
             $stats[$key][$val]['companies'][] = $row->company_name;
         }
 
-        $metric_mapping = array(
+        // Build associative map for this user
+        $user_metrics_map = array(
             'Lenguaje no verbal' => $row->m_lenguaje_no_verbal ?? 'no-data',
-            'Dirige la entrevista'             => $row->m_dirige_entrevista ?? 'no-data',
-            'Mensajes memorables'    => $row->m_mensajes ?? 'no-data',
-            'Preguntas incisivas'       => $row->m_preguntas_incisivas ?? 'no-data',
-            'Frases citables'=> $row->m_frases_citables ?? 'no-data',
-            'Usa datos, cifras'      => $row->m_usa_datos ?? 'no-data',
-            'Valores e historias'      => $row->m_habla_valores ?? 'no-data'
+            'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
+            'Mensajes memorables' => $row->m_mensajes ?? 'no-data',
+            'Preguntas incisivas' => $row->m_preguntas_incisivas ?? 'no-data',
+            'Frases citables' => $row->m_frases_citables ?? 'no-data',
+            'Usa datos, cifras' => $row->m_usa_datos ?? 'no-data',
+            'Valores e historias' => $row->m_habla_valores ?? 'no-data'
         );
 
+        if (!empty($row->dynamic_metrics)) {
+            $dynamic = json_decode($row->dynamic_metrics, true);
+            if (is_array($dynamic)) {
+                foreach($dynamic as $dm) {
+                    if (!empty($dm['name'])) {
+                        $user_metrics_map[$dm['name']] = $dm['value'] ?? 'no-data';
+                    }
+                }
+            }
+        }
+
+        // Array representing scores for all known global labels
         $participant_scores = array();
-        foreach ($metric_mapping as $label => $val) {
+
+        foreach ($all_radar_labels as $label) {
+            $val = isset($user_metrics_map[$label]) ? $user_metrics_map[$label] : 'no-data';
             $score = 0;
-            if ($val === 'bueno') {
+            if ($val === 'bueno' || $val === '2.5') {
                 $score = 2.5;
-            } elseif ($val === 'experto') {
+            } elseif ($val === 'experto' || $val === '5') {
                 $score = 5;
             }
-            $stats['radar_metrics'][$label]['total'] += $score;
-            $stats['radar_metrics'][$label]['count']++;
+
+            if ($val !== 'no-data') {
+                $stats['radar_metrics'][$label]['total'] += $score;
+                $stats['radar_metrics'][$label]['count']++;
+            }
             $participant_scores[] = $score;
         }
 
@@ -128,7 +173,7 @@ function crisis_dashboard_page() {
     <div class="wrap">
         <h1>Dashboard de Estadísticas</h1>
         
-        <div class="crisis-charts-grid">
+        <div class="storytelling-charts-grid">
             <?php if ( !empty($stats['radar_metrics']) ) : ?>
                 <div class="chart-container full-width">
                     <div>
@@ -167,7 +212,7 @@ function crisis_dashboard_page() {
                                         echo '<div>';
                                         echo '<strong>' . esc_html($row->full_name) . '</strong><br>';
                                         echo '<span style="color: #666; font-size: 11px;">' . esc_html($row->company_name) . '</span> | ';
-                                        echo '<span style="color: #0073aa; font-weight: bold; font-size: 11px;">Promedio: ' . crisis_get_user_average($row) . '</span>';
+                                        echo '<span style="color: #0073aa; font-weight: bold; font-size: 11px;">Promedio: ' . storytelling_get_user_average($row) . '</span>';
                                         echo '</div>';
                                         echo '</li>';
                                     }
@@ -185,22 +230,22 @@ function crisis_dashboard_page() {
     </div>
     <?php
     // Pass data to external JS
-    wp_localize_script( 'crisis-admin-js', 'crisisManagerStats', $stats );
+    wp_localize_script( 'storytelling-admin-js', 'storytellingManagerStats', $stats );
 }
 
-function crisis_registros_page() {
+function storytelling_registros_page() {
     global $wpdb;
-    $table_name = Crisis_DB::get_table_name();
+    $table_name = Storytelling_DB::get_table_name();
 
     // Handle Delete
     if ( isset( $_GET['action'] ) && $_GET['action'] === 'delete' && isset( $_GET['id'] ) ) {
-        check_admin_referer( 'crisis_delete_record' );
-        Crisis_DB::delete_data( intval( $_GET['id'] ) );
+        check_admin_referer( 'storytelling_delete_record' );
+        Storytelling_DB::delete_data( intval( $_GET['id'] ) );
         echo '<div class="updated"><p>Registro eliminado.</p></div>';
     }
 
     // Handle Add New/Edit Submit
-    if ( isset( $_POST['crisis_save_record'] ) ) {
+    if ( isset( $_POST['storytelling_save_record'] ) ) {
         $data = array(
             'company_name'        => sanitize_text_field( $_POST['company_name'] ),
             'industry'            => sanitize_text_field( $_POST['industry'] ),
@@ -218,6 +263,19 @@ function crisis_registros_page() {
             'is_active'           => isset( $_POST['is_active'] ) ? 1 : 0,
         );
 
+        $dynamic_metrics_array = array();
+        if (isset($_POST['dynamic_metric_name']) && is_array($_POST['dynamic_metric_name'])) {
+            foreach ($_POST['dynamic_metric_name'] as $index => $name) {
+                $n = sanitize_text_field($name);
+                $isset_val = isset($_POST['dynamic_metric_value'][$index]) ? $_POST['dynamic_metric_value'][$index] : 'no-data';
+                $v = sanitize_text_field($isset_val);
+                if (!empty($n)) {
+                    $dynamic_metrics_array[] = array('name' => $n, 'value' => $v);
+                }
+            }
+        }
+        $data['dynamic_metrics'] = wp_json_encode($dynamic_metrics_array);
+
         // Handle Photo Upload
         if ( ! empty( $_FILES['photo']['name'] ) ) {
             require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -228,10 +286,10 @@ function crisis_registros_page() {
         }
 
         if ( isset( $_GET['id'] ) && $_GET['action'] === 'edit' ) {
-            Crisis_DB::update_data( intval( $_GET['id'] ), $data );
+            Storytelling_DB::update_data( intval( $_GET['id'] ), $data );
             echo '<div class="updated"><p>Registro actualizado.</p></div>';
         } else {
-            Crisis_DB::insert_data( $data );
+            Storytelling_DB::insert_data( $data );
             echo '<div class="updated"><p>Registro creado con éxito.</p></div>';
         }
     }
@@ -239,7 +297,7 @@ function crisis_registros_page() {
     // Handle New/Edit/View View
     $action = isset( $_GET['action'] ) ? $_GET['action'] : '';
     if ( $action === 'edit' || $action === 'new' || $action === 'view' ) {
-        $row = ( $action === 'new' ) ? (object) array() : Crisis_DB::get_data_by_id( intval( $_GET['id'] ) );
+        $row = ( $action === 'new' ) ? (object) array() : Storytelling_DB::get_data_by_id( intval( $_GET['id'] ) );
         
         if ( ! $row && $action !== 'new' ) {
             echo '<div class="error"><p>Registro no encontrado.</p></div>';
@@ -264,12 +322,12 @@ function crisis_registros_page() {
                     <p><strong>Nombre:</strong> <?php echo esc_html( $row->full_name ); ?></p>
                     <p><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></p>
                     <p><strong>Otros:</strong> <br><?php echo nl2br( esc_html( $row->contact_otros ) ); ?></p>
-                    <p><strong>Opinión personal:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
+                    <p><strong>Observaciones:</strong> <br><?php echo nl2br( esc_html( $row->personal_opinion ) ); ?></p>
 
 
                     <hr>
                     <h3>Métricas</h3>
-                    <p style="font-size: 1.2em; color: #0073aa;"><strong>Promedio:</strong> <?php echo crisis_get_user_average($row); ?> / 5.00</p>
+                    <p style="font-size: 1.2em; color: #0073aa;"><strong>Promedio:</strong> <?php echo storytelling_get_user_average($row); ?> / 5.00</p>
                     <p><strong>Proyecta buen lenguaje no verbal:</strong> <?php echo esc_html( $row->m_lenguaje_no_verbal ); ?></p>
                     <p><strong>Dirige la entrevista:</strong> <?php echo esc_html( $row->m_dirige_entrevista ); ?></p>
                     <p><strong>Transmite mensajes memorables:</strong> <?php echo esc_html( $row->m_mensajes ); ?></p>
@@ -277,14 +335,26 @@ function crisis_registros_page() {
                     <p><strong>Frases citables:</strong> <?php echo esc_html( $row->m_frases_citables ); ?></p>
                     <p><strong>Usa datos / cifras:</strong> <?php echo esc_html( $row->m_usa_datos ); ?></p>
                     <p><strong>Valores e historias:</strong> <?php echo esc_html( $row->m_habla_valores ); ?></p>
+                    <?php 
+                    if (!empty($row->dynamic_metrics)) {
+                        $d_metrics = json_decode($row->dynamic_metrics, true);
+                        if (is_array($d_metrics)) {
+                            foreach($d_metrics as $dm) {
+                                if (!empty($dm['name'])) {
+                                    echo '<p><strong>' . esc_html($dm['name']) . ':</strong> ' . esc_html($dm['value']) . '</p>';
+                                }
+                            }
+                        }
+                    }
+                    ?>
                     <?php $display_active = (!isset($row->is_active) || $row->is_active) ? true : false; ?>
                     <p><strong>Estado:</strong> <?php echo $display_active ? '<span style="color: green;">Activo</span>' : '<span style="color: red;">Inactivo</span>'; ?></p>
 
 
 
                     <p class="submit">
-                        <a href="?page=crisis-registros&action=edit&id=<?php echo $row->id; ?>" class="button button-primary">Editar</a>
-                        <a href="?page=crisis-registros" class="button">Volver al listado</a>
+                        <a href="?page=storytelling-registros&action=edit&id=<?php echo $row->id; ?>" class="button button-primary">Editar</a>
+                        <a href="?page=storytelling-registros" class="button">Volver al listado</a>
                     </p>
                 </div>
             </div>
@@ -319,7 +389,7 @@ function crisis_registros_page() {
                     </tr>
                     
                     <tr>
-                        <th colspan="2"><h3>Contacto Principal</h3></th>
+                        <th colspan="2"><h3>Participante</h3></th>
                     </tr>
                     <tr>
                         <th><label>Nombre Completo*</label></th>
@@ -343,7 +413,7 @@ function crisis_registros_page() {
                         <td><textarea name="contact_otros" class="large-text" rows="3"><?php echo esc_textarea( $row->contact_otros ?? '' ); ?></textarea></td>
                     </tr>
                     <tr>
-                        <th><label>Opinión personal</label></th>
+                        <th><label>Observaciones</label></th>
                         <td><textarea name="personal_opinion" class="large-text" rows="3"><?php echo esc_textarea( $row->personal_opinion ?? '' ); ?></textarea></td>
                     </tr>
 
@@ -429,12 +499,70 @@ function crisis_registros_page() {
                         </td>
                     </tr>
 
+                    <tr>
+                        <td colspan="2" style="padding: 0;">
+                            <div id="dynamic-metrics-container" style="margin: 20px 0; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073aa;">
+                                <h4 style="margin-top: 0;">Métricas Adicionales (Personalizadas)</h4>
+                                <div id="dynamic-metrics-list">
+                                    <?php
+                                    if (!empty($row->dynamic_metrics)) {
+                                        $d_metrics = json_decode($row->dynamic_metrics, true);
+                                        if (is_array($d_metrics)) {
+                                            foreach($d_metrics as $dm) {
+                                                ?>
+                                                <div class="dynamic-metric-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                                                    <input type="text" name="dynamic_metric_name[]" value="<?php echo esc_attr($dm['name']); ?>" placeholder="Nombre de la métrica" class="regular-text">
+                                                    <select name="dynamic_metric_value[]">
+                                                        <option value="no-data" <?php selected($dm['value'], 'no-data'); ?>>No hay datos</option>
+                                                        <option value="insuficiente" <?php selected($dm['value'], 'insuficiente'); ?>>Manejo insuficiente</option>
+                                                        <option value="bueno" <?php selected($dm['value'], 'bueno'); ?>>Buen vocero/a</option>
+                                                        <option value="experto" <?php selected($dm['value'], 'experto'); ?>>Experto/a</option>
+                                                    </select>
+                                                    <button type="button" class="button remove-dynamic-metric">X</button>
+                                                </div>
+                                                <?php
+                                            }
+                                        }
+                                    }
+                                    ?>
+                                </div>
+                                <button type="button" id="add-dynamic-metric" class="button">Añadir Métrica Extra</button>
+                            </div>
+                            
+                            <script>
+                                document.getElementById('add-dynamic-metric').addEventListener('click', function() {
+                                    const container = document.getElementById('dynamic-metrics-list');
+                                    const row = document.createElement('div');
+                                    row.className = 'dynamic-metric-row';
+                                    row.style = 'display: flex; gap: 10px; margin-bottom: 10px; align-items: center;';
+                                    row.innerHTML = `
+                                        <input type="text" name="dynamic_metric_name[]" placeholder="Nombre de la métrica" class="regular-text">
+                                        <select name="dynamic_metric_value[]">
+                                            <option value="no-data">No hay datos</option>
+                                            <option value="insuficiente">Manejo insuficiente</option>
+                                            <option value="bueno">Buen vocero/a</option>
+                                            <option value="experto">Experto/a</option>
+                                        </select>
+                                        <button type="button" class="button remove-dynamic-metric">X</button>
+                                    `;
+                                    container.appendChild(row);
+                                });
+                                
+                                document.getElementById('dynamic-metrics-list').addEventListener('click', function(e) {
+                                    if (e.target.classList.contains('remove-dynamic-metric')) {
+                                        e.target.closest('.dynamic-metric-row').remove();
+                                    }
+                                });
+                            </script>
+                        </td>
+                    </tr>
+
 
 
                 </table>
                 <p class="submit">
-                    <input type="submit" name="crisis_save_record" class="button button-primary" value="<?php echo ( $action === 'edit' ) ? 'Guardar Cambios' : 'Crear Registro'; ?>">
-                    <a href="?page=crisis-registros" class="button">Volver</a>
+                    <input type="submit" name="storytelling_save_record" class="button button-primary" value="<?php echo ( $action === 'edit' ) ? 'Guardar Cambios' : 'Crear Registro'; ?>">
+                    <a href="?page=storytelling-registros" class="button">Volver</a>
                 </p>
             </form>
         </div>
@@ -445,7 +573,7 @@ function crisis_registros_page() {
     // Handling Industry Filter
     $industry_filter = isset( $_GET['industry_filter'] ) ? sanitize_text_field( $_GET['industry_filter'] ) : '';
     
-    $all_data_all = Crisis_DB::get_all_data();
+    $all_data_all = Storytelling_DB::get_all_data();
     $industries = array_unique( array_column( $all_data_all, 'industry' ) );
     
     // Filter the data if requested
@@ -458,13 +586,13 @@ function crisis_registros_page() {
     }
     ?>
     <div class="wrap">
-        <h1 class="wp-heading-inline">Registros de Crisis Manager</h1>
-        <a href="?page=crisis-registros&action=new" class="page-title-action">Agregar Nuevo</a>
-        <a href="<?php echo admin_url( 'admin-ajax.php?action=crisis_export_pdf' ); ?>" class="page-title-action" target="_blank">Exportar Todo a PDF</a>
+        <h1 class="wp-heading-inline">Registros de Storytelling Manager</h1>
+        <a href="?page=storytelling-registros&action=new" class="page-title-action">Agregar Nuevo</a>
+        <a href="<?php echo admin_url( 'admin-ajax.php?action=storytelling_export_pdf' ); ?>" class="page-title-action" target="_blank">Exportar Todo a PDF</a>
         
         <div class="tablenav top">
             <form method="get">
-                <input type="hidden" name="page" value="crisis-registros">
+                <input type="hidden" name="page" value="storytelling-registros">
                 <div class="alignleft actions">
                     <select name="industry_filter">
                         <option value="">Todas las Industrias</option>
@@ -476,7 +604,7 @@ function crisis_registros_page() {
                     </select>
                     <input type="submit" class="button" value="Filtrar">
                     <?php if ( !empty($industry_filter) ) : ?>
-                        <a href="?page=crisis-registros" class="button-link" style="margin-left: 10px;">Limpiar Filtro</a>
+                        <a href="?page=storytelling-registros" class="button-link" style="margin-left: 10px;">Limpiar Filtro</a>
                     <?php endif; ?>
                 </div>
             </form>
@@ -511,18 +639,18 @@ function crisis_registros_page() {
                             <td><strong><?php echo esc_html( $row->company_name ); ?></strong></td>
                             <td><?php echo esc_html( $row->full_name ); ?> (<?php echo esc_html( $row->position_cargo ); ?>)</td>
                             <td>
-                                <label class="crisis-switch">
-                                    <input type="checkbox" class="crisis-toggle-active" data-id="<?php echo $row->id; ?>" <?php checked( !isset($row->is_active) || $row->is_active, 1 ); ?>>
+                                <label class="storytelling-switch">
+                                    <input type="checkbox" class="storytelling-toggle-active" data-id="<?php echo $row->id; ?>" <?php checked( !isset($row->is_active) || $row->is_active, 1 ); ?>>
                                     <span class="slider round"></span>
                                 </label>
                             </td>
                             <td><?php echo esc_html( $row->industry ); ?></td>
 
                             <td>
-                                <a href="<?php echo admin_url( 'admin.php?page=crisis-registros&action=view&id=' . $row->id ); ?>">Ver</a> | 
-                                <a href="<?php echo admin_url( 'admin.php?page=crisis-registros&action=edit&id=' . $row->id ); ?>">Editar</a> | 
-                                <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=crisis-registros&action=delete&id=' . $row->id ), 'crisis_delete_record' ); ?>" onclick="return confirm('¿Estás seguro?')">Eliminar</a> |
-                                <a href="<?php echo admin_url( 'admin-ajax.php?action=crisis_export_pdf&id=' . $row->id ); ?>" target="_blank">PDF</a>
+                                <a href="<?php echo admin_url( 'admin.php?page=storytelling-registros&action=view&id=' . $row->id ); ?>">Ver</a> | 
+                                <a href="<?php echo admin_url( 'admin.php?page=storytelling-registros&action=edit&id=' . $row->id ); ?>">Editar</a> | 
+                                <a href="<?php echo wp_nonce_url( admin_url( 'admin.php?page=storytelling-registros&action=delete&id=' . $row->id ), 'storytelling_delete_record' ); ?>" onclick="return confirm('¿Estás seguro?')">Eliminar</a> |
+                                <a href="<?php echo admin_url( 'admin-ajax.php?action=storytelling_export_pdf&id=' . $row->id ); ?>" target="_blank">PDF</a>
                             </td>
                         </tr>
                     <?php endforeach; ?>
