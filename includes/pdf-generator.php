@@ -25,195 +25,341 @@ function storytelling_handle_pdf_export() {
     exit;
 }
 
+function storytelling_get_participant_css() {
+    ob_start();
+    ?>
+    <style>
+        :root {
+            --wp--preset--font-size--small: 0.875rem;
+            --wp--preset--font-size--medium: 1rem;
+            --wp--preset--font-size--large: 1.38rem;
+            --wp--preset--font-size--x-large: 1.75rem;
+            --wp--preset--color--contrast: #000000;
+            --wp--preset--color--focus: #cc0000;
+            --wp--preset--color--tertiary: #f5f5f5;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Manrope', Arial, sans-serif; line-height: 1.7; color: var(--wp--preset--color--contrast); margin: 0; padding: 0; }
+        .no-print-btn { padding: 10px 20px; background: #0073aa; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin: 20px; font-size: 14px; }
+        .site-main { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        h1, h2, h3, h4 { margin: 0; line-height: 1.2; font-weight: normal; }
+        p { margin-top: 0; }
+        .block { width: 100%; }
+        
+        header.block .content { display: flex; padding: 3rem 0; flex-wrap: nowrap; align-items: center; gap: 2rem; }
+        header.block .content .container { flex: 1 1 0%; min-width: 0; width: 50%; }
+        header.block .content .container .title-page { font-size: var(--wp--preset--font-size--x-large); text-transform: uppercase; padding-bottom: 1rem; margin-bottom: 1rem; position: relative; font-weight: 700; }
+        header.block .content .container .title-page::after { content: ''; position: absolute; bottom: 0; left: 0; width: 50%; height: 2px; background-color: var(--wp--preset--color--contrast); opacity: .25; }
+        header.block .content .container .subtitle-page, header.block .content .container .document-title, header.block .content .container .document-subtitle { font-size: var(--wp--preset--font-size--large); text-transform: uppercase; margin-bottom: 0.5rem; }
+        header.block .content .container .position, header.block .content .container .company { font-size: var(--wp--preset--font-size--medium); margin-bottom: 0.5rem; }
+        header.block .content .container .document-title { margin-top: 2rem; color: var(--wp--preset--color--focus); font-weight: 900; position: relative; display: inline-flex; }
+        header.block .content .container .document-title::after { content: '®'; position: absolute; top: 0; right: -1rem; font-weight: 400; font-size: var(--wp--preset--font-size--large); color: var(--wp--preset--color--contrast); }
+        header.block .content .container .document-subtitle { font-size: var(--wp--preset--font-size--medium); }
+        
+        header.block .content .avatar-container { display: flex; justify-content: flex-end; }
+        header.block .content .avatar-container .avatar { aspect-ratio: 1/1; object-fit: cover; width: 250px; height: 250px; max-width: 100%; }
+        
+        .block.metadata-wrapper .content { display: flex; flex-wrap: nowrap; gap: 2rem; padding-bottom: 3rem; }
+        .block.metadata-wrapper .content .container { flex: 1 1 0%; min-width: 0; width: 50%; }
+        .block.metadata-wrapper .content .container .title-section { font-size: var(--wp--preset--font-size--large); margin-bottom: 2rem; font-weight: bold; }
+        .block.metadata-wrapper .content .metadata-container { background-color: var(--wp--preset--color--tertiary); padding: 2rem; }
+        
+        .data-participant { display: flex; flex-direction: column; gap: 1rem; }
+        .data-participant-item { display: flex; flex-direction: column; }
+        .data-participant-item-label { font-size: var(--wp--preset--font-size--medium); font-weight: 700; margin-bottom: 0.2rem; margin-top: 0; }
+        .data-participant-item-value { font-size: var(--wp--preset--font-size--medium); }
+        .data-participant-item-value p { margin: 0 0 0.5rem 0; }
+        .data-participant-item-value ul { margin: 0.5rem 0 0 0; padding-left: 1.5rem; }
+        
+        .block.participant-footer .footer-content { display: flex; justify-content: flex-end; padding-bottom: 3rem; }
+        .participant-article { page-break-after: always; padding-bottom: 20px; }
+        .participant-article:last-child { page-break-after: auto; }
+        
+        @media print {
+            .no-print { display: none !important; }
+            body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: transparent; }
+            .site-main { width: 100%; max-width: none; border: none; padding: 0; margin: 0; }
+            @page { margin: 1cm; size: A4 portrait; }
+            
+            /* Ajustes compactos para forzar una sola página por registro */
+            header.block .content { padding: 1rem 0 !important; gap: 1rem !important; }
+            header.block .content .container .title-page { font-size: 1.2rem !important; padding-bottom: 0.5rem !important; margin-bottom: 0.5rem !important; border-width: 1px !important; }
+            header.block .content .container .subtitle-page { font-size: 1.1rem !important; margin-bottom: 0.2rem !important; }
+            header.block .content .container .position, 
+            header.block .content .container .company { font-size: 0.9rem !important; margin-bottom: 0.2rem !important; }
+            header.block .content .container .document-title { font-size: 1.2rem !important; margin-top: 1rem !important; }
+            header.block .content .container .document-title::after { font-size: 1rem !important; }
+            header.block .content .container .document-subtitle { font-size: 1rem !important; }
+            header.block .content .avatar-container .avatar { width: 130px !important; height: 130px !important; }
+
+            .block.metadata-wrapper .content { padding-bottom: 0.5rem !important; gap: 1rem !important; }
+            .block.metadata-wrapper .content .metadata-container { padding: 1rem !important; }
+            .block.metadata-wrapper .content .container .title-section { font-size: 1.2rem !important; margin-bottom: 0.7rem !important; }
+            
+            .data-participant { gap: 0.4rem !important; }
+            .data-participant-item-label { font-size: 0.9rem !important; margin-bottom: 0 !important; }
+            .data-participant-item-value, .data-participant-item-value p { font-size: 0.85rem !important; line-height: 1.3 !important; }
+            .data-participant-item-value ul { margin: 0.2rem 0 0 0 !important; }
+            
+            .chart-inner-container { min-height: 280px !important; display: block; }
+            .chart-inner-container > div { min-height: 280px !important; height: 280px !important; }
+            
+            .block.participant-footer .footer-content { padding-bottom: 0 !important; }
+            .block.participant-footer img { max-width: 120px !important; height: auto !important; }
+            
+            .participant-article { padding-bottom: 0 !important; page-break-inside: avoid !important; }
+        }
+    </style>
+    <?php
+    return ob_get_clean();
+}
+
+function storytelling_render_participant_html( $row, $suffix = '' ) {
+    ob_start();
+    ?>
+    <article class="participant participant-article">
+        <header class="block">
+            <div class="content">
+                <div class="container">
+                    <h1 class="title-page">Benchmark de competencias en comunicación</h1>
+                    <h2 class="subtitle-page"><?php echo esc_html( $row->full_name ); ?></h2>
+                    
+                    <?php if ( !empty($row->position_cargo) ) : ?>
+                        <h3 class="position"><?php echo esc_html( $row->position_cargo ); ?></h3>
+                    <?php endif; ?>
+                    
+                    <?php if ( !empty($row->company_name) ) : ?>
+                        <h3 class="company"><?php echo esc_html( $row->company_name ); ?></h3>
+                    <?php endif; ?>
+                    
+                    <h2 class="document-title">MAPCO</h2>
+                    <h2 class="document-subtitle">Mapa de competencias comunicativas</h2>
+                </div>
+                <div class="container avatar-container">
+                    <?php if ( !empty($row->photo_url) ) : ?>
+                        <img src="<?php echo esc_url( $row->photo_url ); ?>" class="avatar" alt="Avatar">
+                    <?php endif; ?>
+                </div>
+            </div>
+        </header>
+
+        <section class="block metadata-wrapper">
+            <div class="content metadata">
+                <div class="container metadata-container">
+                    <h2 class="title-section">Datos del participante</h2>
+                    <div class="data-participant">
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Nombre:</h3>
+                            <span class="data-participant-item-value"><?php echo esc_html( $row->full_name ); ?></span>
+                        </div>
+                        <?php if ( !empty($row->position_cargo) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Posición:</h3>
+                            <span class="data-participant-item-value"><?php echo esc_html( $row->position_cargo ); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ( !empty($row->company_name) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Empresa:</h3>
+                            <span class="data-participant-item-value"><?php echo esc_html( $row->company_name ); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ( !empty($row->ranking_personal) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Ranking de reputación personal:</h3>
+                            <span class="data-participant-item-value"><?php echo esc_html( $row->ranking_personal ); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ( !empty($row->ranking_institutional) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Ranking de reputación institucional:</h3>
+                            <span class="data-participant-item-value"><?php echo esc_html( $row->ranking_institutional ); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ( !empty($row->contact_otros) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Presencia y dominio escénico:</h3>
+                            <span class="data-participant-item-value"><?php echo wpautop(wp_kses_post( $row->contact_otros )); ?></span>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ( !empty($row->personal_opinion) ) : ?>
+                        <div class="data-participant-item">
+                            <h3 class="data-participant-item-label">Desempeño retórico y contenidos:</h3>
+                            <span class="data-participant-item-value"><?php echo wpautop(wp_kses_post( $row->personal_opinion )); ?></span>
+                        </div>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <div class="container chart-container">
+                    <?php
+                    $metric_mapping = array(
+                        'Lenguaje no verbal'   => $row->m_lenguaje_no_verbal ?? 'no-data',
+                        'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
+                        'Mensajes memorables'  => $row->m_mensajes ?? 'no-data',
+                        'Preguntas incisivas'  => $row->m_preguntas_incisivas ?? 'no-data',
+                        'Frases citables'      => $row->m_frases_citables ?? 'no-data',
+                        'Usa datos, cifras'    => $row->m_usa_datos ?? 'no-data',
+                        'Valores e historias'  => $row->m_habla_valores ?? 'no-data'
+                    );
+
+                    if (!empty($row->dynamic_metrics)) {
+                        $d_metrics = json_decode($row->dynamic_metrics, true);
+                        if (is_array($d_metrics)) {
+                            foreach($d_metrics as $dm) {
+                                if (!empty($dm['name'])) {
+                                    $metric_mapping[$dm['name']] = $dm['value'] ?? 'no-data';
+                                }
+                            }
+                        }
+                    }
+
+                    $excluded_opts = array();
+                    if (!empty($row->excluded_metrics)) {
+                        $decoded = json_decode($row->excluded_metrics, true);
+                        if (is_array($decoded)) {
+                            $excluded_opts = $decoded;
+                        }
+                    }
+                    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
+                    if (is_array($global_excluded)) {
+                        $excluded_opts = array_merge($excluded_opts, $global_excluded);
+                    }
+
+                    $label_to_db_key = array(
+                        'Lenguaje no verbal'   => 'm_lenguaje_no_verbal',
+                        'Dirige la entrevista' => 'm_dirige_entrevista',
+                        'Mensajes memorables'  => 'm_mensajes',
+                        'Preguntas incisivas'  => 'm_preguntas_incisivas',
+                        'Frases citables'      => 'm_frases_citables',
+                        'Usa datos, cifras'    => 'm_usa_datos',
+                        'Valores e historias'  => 'm_habla_valores'
+                    );
+
+                    $categories = array();
+                    $data_points = array();
+                    $has_data = false;
+
+                    foreach ($metric_mapping as $label => $val) {
+                        $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
+                        if (in_array($db_val_key, $excluded_opts)) {
+                            continue;
+                        }
+
+                        $categories[] = $label;
+                        $score = 0;
+                        if ($val === 'Manejo insuficiente' || $val === '1.0' || $val === '1' || strpos(strtolower($val), 'insuficiente') !== false) {
+                            $score = 1;
+                            $has_data = true;
+                        } elseif ($val === 'Buen vocero/a' || $val === '2.5' || strpos(strtolower($val), 'buen') !== false) {
+                            $score = 2.5;
+                            $has_data = true;
+                        } elseif ($val === 'Experto/a' || $val === '5.0' || $val === '5' || strpos(strtolower($val), 'experto') !== false) {
+                            $score = 5;
+                            $has_data = true;
+                        }
+                        
+                        if ($val !== 'No hay datos' && $val !== 'no-data' && $val !== '') {
+                            $data_points[] = $score;
+                        } else {
+                            array_pop($categories);
+                        }
+                    }
+
+                    $chart_categories = wp_json_encode($categories);
+                    $chart_data = wp_json_encode($data_points);
+                    $chart_id = "participant-radar-" . esc_attr($row->id) . $suffix;
+                    ?>
+
+                    <?php if ( $has_data ) : ?>
+                        <div class="chart-inner-container">
+                            <div id="<?php echo $chart_id; ?>" style="width:100%; height:100%; min-height:400px;"></div>
+                        </div>
+                        <script>
+                            document.addEventListener('DOMContentLoaded', function() {
+                                var options = {
+                                    series: [{
+                                        name: 'Puntaje',
+                                        data: <?php echo $chart_data; ?>
+                                    }],
+                                    chart: {
+                                        height: '100%',
+                                        width: '100%',
+                                        type: 'radar',
+                                        toolbar: { show: false },
+                                        animations: { enabled: false }
+                                    },
+                                    labels: <?php echo $chart_categories; ?>,
+                                    yaxis: {
+                                        min: 0,
+                                        max: 5,
+                                        tickAmount: 5,
+                                        labels: {
+                                            formatter: function(val, i) {
+                                                if(i % 2 === 0) { return val; } else { return ''; }
+                                            }
+                                        }
+                                    },
+                                    markers: { size: 4, colors: ['#fff'], strokeColor: '#0073aa', strokeWidth: 2 },
+                                    fill: { opacity: 0.2, colors: ['#0073aa'] },
+                                    stroke: { show: true, width: 2, colors: ['#0073aa'], dashArray: 0 }
+                                };
+                                var chart = new ApexCharts(document.querySelector("#<?php echo $chart_id; ?>"), options);
+                                if (typeof window.radarChartsPromises === 'undefined') {
+                                    window.radarChartsPromises = [];
+                                }
+                                window.radarChartsPromises.push(chart.render());
+                            });
+                        </script>
+                    <?php else: ?>
+                        <p style="color: #666; font-style: italic;">No hay suficientes datos de métricas para generar la gráfica.</p>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </section>
+
+        <section class="block participant-footer">
+            <div class="content footer-content">
+                <?php $logo_url = get_template_directory_uri() . '/assets/img/CE-red-logo.png'; ?>
+                <img src="<?php echo esc_url($logo_url); ?>" alt="Logo de Carolina Eslava" width="150" height="61" loading="lazy">
+            </div>
+        </section>
+    </article>
+    <?php
+    return ob_get_clean();
+}
+
 function storytelling_render_record_pdf( $row ) {
     ?>
     <!DOCTYPE html>
     <html lang="es">
     <head>
         <meta charset="UTF-8">
-        <title>Reporte Storytelling Manager - <?php echo esc_html( $row->company_name ); ?></title>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; padding: 20px; font-size: 13px; }
-            .header { border-bottom: 2px solid #0073aa; margin-bottom: 15px; padding-bottom: 5px; position: relative; }
-            .header h1 { margin: 0; color: #0073aa; font-size: 20px; }
-            .header p { margin: 5px 0 0 0; font-size: 11px; color: #777; }
-            .photo { position: absolute; top: 0; right: 0; max-width: 100px; border: 1px solid #ccc; padding: 3px; }
-            .section { margin-bottom: 15px; clear: both; }
-            .section h2 { background: #f4f4f4; padding: 3px 10px; font-size: 15px; border-left: 4px solid #0073aa; margin: 10px 0 8px 0; }
-            .grid { display: flex; flex-wrap: wrap; }
-            .item { width: 50%; margin-bottom: 5px; }
-            .item strong { display: inline-block; width: 140px; font-size: 12px; color: #555; }
-            @page { margin: 1cm; }
-            @media print {
-                .no-print { display: none; }
-                body { padding: 0; margin: 0; }
-            }
-        </style>
+        <title>Benchmark de competencias en comunicación - <?php echo esc_html( $row->full_name ); ?></title>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <?php echo storytelling_get_participant_css(); ?>
     </head>
     <body>
-        <button class="no-print" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+            <button class="no-print-btn" onclick="window.print()">Imprimir / Guardar como PDF</button>
+        </div>
         
-        <div class="header">
-            <?php if ( $row->photo_url ) : ?>
-                <img src="<?php echo esc_url( $row->photo_url ); ?>" class="photo">
-            <?php endif; ?>
-            <h1>Reporte Storytelling Manager: <?php echo esc_html( $row->company_name ); ?></h1>
-            <p>Generado el: <?php echo date('d/m/Y H:i'); ?></p>
-        </div>
-
-        <div class="section">
-            <h2>Datos Corporativos</h2>
-            <div class="grid">
-                <div class="item"><strong>Compañía:</strong> <?php echo esc_html( $row->company_name ); ?></div>
-                <div class="item"><strong>Industria:</strong> <?php echo esc_html( $row->industry ); ?></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Contacto y Posición</h2>
-            <div class="grid">
-                <div class="item"><strong>Nombre Completo:</strong> <?php echo esc_html( $row->full_name ); ?></div>
-                <div class="item"><strong>Cargo:</strong> <?php echo esc_html( $row->position_cargo ); ?></div>
-                <div class="item"><strong>Ranking Personal:</strong> <?php echo esc_html( $row->ranking_personal ?? '' ); ?></div>
-                <div class="item"><strong>Ranking Institucional:</strong> <?php echo esc_html( $row->ranking_institutional ?? '' ); ?></div>
-                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Presencia y dominio escénico:</strong><br><?php echo wpautop( wp_kses_post( $row->contact_otros ) ); ?></div>
-                <div class="item" style="grid-column: 1 / -1; margin-top: 10px;"><strong>Desempeño retórico y contenidos:</strong><br><?php echo wpautop( wp_kses_post( $row->personal_opinion ) ); ?></div>
-            </div>
-        </div>
-
-        <div class="section">
-            <h2>Métricas</h2>
-            <p style="margin-top: -10px; margin-bottom: 15px; font-weight: bold; color: #0073aa;">Promedio General: <?php echo storytelling_get_user_average($row); ?> / 5.00</p>
-            <div class="grid">
-                <div class="item"><strong>Lenguaje no verbal:</strong> <?php echo esc_html( $row->m_lenguaje_no_verbal ); ?></div>
-                <div class="item"><strong>Dirige la entrevista:</strong> <?php echo esc_html( $row->m_dirige_entrevista ); ?></div>
-                <div class="item"><strong>Mensajes memorables:</strong> <?php echo esc_html( $row->m_mensajes ); ?></div>
-                <div class="item"><strong>Preguntas incisivas:</strong> <?php echo esc_html( $row->m_preguntas_incisivas ); ?></div>
-                <div class="item"><strong>Frases citables:</strong> <?php echo esc_html( $row->m_frases_citables ); ?></div>
-                <div class="item"><strong>Usa datos / cifras:</strong> <?php echo esc_html( $row->m_usa_datos ); ?></div>
-                <div class="item"><strong>Valores e historias:</strong> <?php echo esc_html( $row->m_habla_valores ); ?></div>
-                <?php 
-                if (!empty($row->dynamic_metrics)) {
-                    $d_metrics = json_decode($row->dynamic_metrics, true);
-                    if (is_array($d_metrics)) {
-                        foreach($d_metrics as $dm) {
-                            if (!empty($dm['name'])) {
-                                echo '<div class="item"><strong>' . esc_html($dm['name']) . ':</strong> ' . esc_html($dm['value']) . '</div>';
-                            }
-                        }
-                    }
-                }
-                ?>
-
-                <?php $is_active_status = (!isset($row->is_active) || $row->is_active) ? 'Activo' : 'Inactivo'; ?>
-                <div class="item"><strong>Estado Registrado:</strong> <?php echo $is_active_status; ?></div>
-            </div>
-        </div>
-
-        <?php
-        $metric_mapping = array(
-            'Lenguaje no verbal' => $row->m_lenguaje_no_verbal ?? 'no-data',
-            'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
-            'Mensajes memorables' => $row->m_mensajes ?? 'no-data',
-            'Preguntas incisivas' => $row->m_preguntas_incisivas ?? 'no-data',
-            'Frases citables' => $row->m_frases_citables ?? 'no-data',
-            'Usa datos, cifras' => $row->m_usa_datos ?? 'no-data',
-            'Valores e historias' => $row->m_habla_valores ?? 'no-data'
-        );
-
-        if (!empty($row->dynamic_metrics)) {
-            if (is_array($d_metrics)) {
-                foreach($d_metrics as $dm) {
-                    if (!empty($dm['name'])) {
-                        $metric_mapping[$dm['name']] = $dm['value'] ?? 'no-data';
-                    }
-                }
-            }
-        }
-
-        $excluded_opts = array();
-        if (!empty($row->excluded_metrics)) {
-            $decoded = json_decode($row->excluded_metrics, true);
-            if (is_array($decoded)) {
-                $excluded_opts = $decoded;
-            }
-        }
-        $global_excluded = get_option('storytelling_global_excluded_metrics', array());
-        if (is_array($global_excluded)) {
-            $excluded_opts = array_merge($excluded_opts, $global_excluded);
-        }
-
-        $label_to_db_key = array(
-            'Lenguaje no verbal' => 'm_lenguaje_no_verbal',
-            'Dirige la entrevista' => 'm_dirige_entrevista',
-            'Mensajes memorables' => 'm_mensajes',
-            'Preguntas incisivas' => 'm_preguntas_incisivas',
-            'Frases citables' => 'm_frases_citables',
-            'Usa datos, cifras' => 'm_usa_datos',
-            'Valores e historias' => 'm_habla_valores'
-        );
-
-        $categories = array();
-        $data_points = array();
-        foreach ($metric_mapping as $label => $val) {
-            $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
-            if (in_array($db_val_key, $excluded_opts)) {
-                continue;
-            }
-
-            $categories[] = $label;
-            $score = 0;
-            if ($val === 'bueno' || $val === '2.5') {
-                $score = 2.5;
-            } elseif ($val === 'experto' || $val === '5') {
-                $score = 5;
-            }
-            if ($val !== 'no-data' && $val !== '') {
-                $data_points[] = $score;
-            } else {
-                array_pop($categories);
-            }
-        }
-
-        $chart_categories = wp_json_encode($categories);
-        $chart_data = wp_json_encode($data_points);
-        ?>
-
-        <div class="section">
-            <h2>Gráfico de Rendimiento</h2>
-            <div id="participant-chart" style="width: 100%; max-width: 600px; margin: 0 auto;"></div>
-        </div>
-
+        <main id="main" class="site-main" role="main">
+            <?php echo storytelling_render_participant_html( $row ); ?>
+        </main>
+        
         <script>
-            var options = {
-                series: [{
-                    name: 'Rendimiento',
-                    data: <?php echo $chart_data; ?>
-                }],
-                chart: {
-                    height: 400,
-                    type: 'radar',
-                    toolbar: { show: false },
-                    animations: { enabled: false }
-                },
-                labels: <?php echo $chart_categories; ?>,
-                stroke: { width: 2, colors: ['#008ffb'] },
-                fill: { opacity: 0.2, colors: ['#008ffb'] },
-                markers: { size: 4 },
-                yaxis: {
-                    min: 0,
-                    max: 5,
-                    tickAmount: 5
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof window.radarChartsPromises !== 'undefined') {
+                    Promise.all(window.radarChartsPromises).then(function() {
+                        setTimeout(function(){
+                            window.print();
+                        }, 500);
+                    });
+                } else {
+                    setTimeout(function(){
+                        window.print();
+                    }, 500);
                 }
-            };
-
-            var chart = new ApexCharts(document.querySelector("#participant-chart"), options);
-            chart.render().then(function() {
-                // Ensure the chart has finished painting in the DOM before printing
-                setTimeout(function(){
-                    window.print();
-                }, 500);
             });
         </script>
     </body>
@@ -223,7 +369,6 @@ function storytelling_render_record_pdf( $row ) {
 
 function storytelling_render_global_pdf() {
     $all_data = Storytelling_DB::get_all_data();
-    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
 
     // Sort by ranking_personal ascending
     usort($all_data, function($a, $b) {
@@ -250,186 +395,35 @@ function storytelling_render_global_pdf() {
     <head>
         <meta charset="UTF-8">
         <title>Reporte Integral Storytelling Manager</title>
-        <style>
-            body { font-family: Arial, sans-serif; line-height: 1.4; color: #333; padding: 20px; font-size: 11px; }
-            .main-title { color: #0073aa; border-bottom: 3px solid #0073aa; padding-bottom: 10px; margin-bottom: 30px; text-align: center; font-size: 24px; }
-            .record-block { border: 1px solid #eee; margin-bottom: 25px; padding: 15px; page-break-inside: avoid; background: #fff; }
-            .record-header { display: flex; align-items: center; border-bottom: 1px solid #0073aa; margin-bottom: 10px; padding-bottom: 5px; }
-            .record-header h2 { margin: 0; color: #0073aa; font-size: 16px; flex-grow: 1; }
-            .status-badge { padding: 2px 8px; border-radius: 4px; font-size: 10px; color: #fff; font-weight: bold; }
-            .status-active { background: #2ecc71; }
-            .status-inactive { background: #e74c3c; }
-            .data-grid { display: flex; flex-wrap: wrap; }
-            .data-col { width: 33.33%; margin-bottom: 8px; }
-            .data-col.full { width: 100%; }
-            .data-col strong { display: block; font-size: 9px; color: #777; text-transform: uppercase; }
-            .record-photo { float: right; max-width: 60px; border-radius: 4px; margin-left: 10px; }
-            .section-label { font-weight: bold; color: #555; border-bottom: 1px solid #f0f0f0; margin: 10px 0 5px 0; font-size: 10px; background: #f9f9f9; padding: 2px 5px; }
-            @page { margin: 1.5cm; }
-            @media print { .no-print { display: none; } }
-        </style>
         <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+        <?php echo storytelling_get_participant_css(); ?>
     </head>
     <body>
-        <button class="no-print" onclick="window.print()" style="padding: 10px 20px; background: #0073aa; color: #fff; border: none; border-radius: 4px; cursor: pointer; margin-bottom: 20px;">Imprimir Todo / Guardar PDF</button>
+        <div class="no-print" style="text-align: right; margin-bottom: 20px;">
+            <button class="no-print-btn" onclick="window.print()">Imprimir Todo / Guardar PDF</button>
+        </div>
         
-        <div class="main-title">Reporte Integral de Registros Storytelling Manager</div>
-        <p style="text-align: right;">Total de registros: <strong><?php echo count($all_data); ?></strong> | Fecha: <?php echo date('d/m/Y'); ?></p>
-
-        <?php foreach ($all_data as $row) : ?>
-            <div class="record-block">
-                <div class="record-header">
-                    <h2><?php echo esc_html($row->company_name); ?></h2>
-                    <?php $is_act = (!isset($row->is_active) || $row->is_active); ?>
-                    <span class="status-badge <?php echo $is_act ? 'status-active' : 'status-inactive'; ?>">
-                        <?php echo $is_act ? 'ACTIVO' : 'INACTIVO'; ?>
-                    </span>
-                </div>
-
-                <?php if ( $row->photo_url ) : ?>
-                    <img src="<?php echo esc_url( $row->photo_url ); ?>" class="record-photo">
-                <?php endif; ?>
-
-                <div class="section-label">Información Corporativa y Contacto</div>
-                <div class="data-grid">
-                    <div class="data-col"><strong>Compañía</strong><?php echo esc_html($row->company_name); ?></div>
-                    <div class="data-col"><strong>Industria</strong><?php echo esc_html($row->industry); ?></div>
-                    <div class="data-col"><strong>Contacto</strong><?php echo esc_html($row->full_name); ?></div>
-                    <div class="data-col"><strong>Cargo</strong> <?php echo esc_html($row->position_cargo); ?></div>
-                    <div class="data-col"><strong>Ranking Personal</strong> <?php echo esc_html($row->ranking_personal ?? ''); ?></div>
-                    <div class="data-col"><strong>Ranking Institucional</strong> <?php echo esc_html($row->ranking_institutional ?? ''); ?></div>
-                    <div class="data-col full" style="margin-top: 10px;"><strong>Presencia y dominio escénico</strong> <?php echo wpautop(wp_kses_post($row->contact_otros)); ?></div>
-                    <div class="data-col full" style="margin-top: 10px;"><strong>Desempeño retórico y contenidos</strong> <?php echo wpautop(wp_kses_post($row->personal_opinion)); ?></div>
-                </div>
-
-                <div class="section-label">Métricas - Promedio: <?php echo storytelling_get_user_average($row); ?> / 5.00</div>
-                <div class="data-grid">
-                    <div class="data-col"><strong>Lenguaje N.V.</strong><?php echo esc_html($row->m_lenguaje_no_verbal); ?></div>
-                    <div class="data-col"><strong>Dirige Entrev.</strong><?php echo esc_html($row->m_dirige_entrevista); ?></div>
-                    <div class="data-col"><strong>Mensajes M.</strong><?php echo esc_html($row->m_mensajes); ?></div>
-                    <div class="data-col"><strong>Preg. Incisivas</strong><?php echo esc_html($row->m_preguntas_incisivas); ?></div>
-                    <div class="data-col"><strong>Frases citables</strong><?php echo esc_html($row->m_frases_citables); ?></div>
-                    <div class="data-col"><strong>Usa Datos</strong><?php echo esc_html($row->m_usa_datos); ?></div>
-                    <div class="data-col"><strong>Valores y P.V.</strong><?php echo esc_html($row->m_habla_valores); ?></div>
-                    <?php 
-                    if (!empty($row->dynamic_metrics)) {
-                        $d_metrics = json_decode($row->dynamic_metrics, true);
-                        if (is_array($d_metrics)) {
-                            foreach($d_metrics as $dm) {
-                                if (!empty($dm['name'])) {
-                                    echo '<div class="data-col"><strong>' . esc_html($dm['name']) . '</strong>' . esc_html($dm['value']) . '</div>';
-                                }
-                            }
-                        }
-                    }
-                    ?>
-                </div>
-
-                <!-- Gráfico Individual -->
-                <div class="section-label" style="text-align: center; margin-top: 15px;">Gráfico de Rendimiento</div>
-                <div id="chart-participant-<?php echo $row->id; ?>" style="width: 100%; max-width: 400px; margin: 0 auto;"></div>
-
-                <?php
-                // Preparar datos de gráfico para este registro
-                $metric_mapping = array(
-                    'Lenguaje no verbal' => $row->m_lenguaje_no_verbal ?? 'no-data',
-                    'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
-                    'Mensajes memorables' => $row->m_mensajes ?? 'no-data',
-                    'Preguntas incisivas' => $row->m_preguntas_incisivas ?? 'no-data',
-                    'Frases citables' => $row->m_frases_citables ?? 'no-data',
-                    'Usa datos, cifras' => $row->m_usa_datos ?? 'no-data',
-                    'Valores e historias' => $row->m_habla_valores ?? 'no-data'
-                );
-
-                if (!empty($row->dynamic_metrics)) {
-                    $d_metrics = json_decode($row->dynamic_metrics, true);
-                    if (is_array($d_metrics)) {
-                        foreach($d_metrics as $dm) {
-                            if (!empty($dm['name'])) {
-                                $metric_mapping[$dm['name']] = $dm['value'] ?? 'no-data';
-                            }
-                        }
-                    }
-                }
-
-                $excluded_opts = array();
-                if (!empty($row->excluded_metrics)) {
-                    $decoded = json_decode($row->excluded_metrics, true);
-                    if (is_array($decoded)) {
-                        $excluded_opts = $decoded;
-                    }
-                }
-                if (is_array($global_excluded)) {
-                    $excluded_opts = array_merge($excluded_opts, $global_excluded);
-                }
-                
-                $label_to_db_key = array(
-                    'Lenguaje no verbal' => 'm_lenguaje_no_verbal',
-                    'Dirige la entrevista' => 'm_dirige_entrevista',
-                    'Mensajes memorables' => 'm_mensajes',
-                    'Preguntas incisivas' => 'm_preguntas_incisivas',
-                    'Frases citables' => 'm_frases_citables',
-                    'Usa datos, cifras' => 'm_usa_datos',
-                    'Valores e historias' => 'm_habla_valores'
-                );
-
-                $categories = array();
-                $data_points = array();
-                foreach ($metric_mapping as $label => $val) {
-                    $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
-                    if (in_array($db_val_key, $excluded_opts)) {
-                        continue;
-                    }
-                    $categories[] = $label;
-                    $score = 0;
-                    if ($val === 'bueno' || $val === '2.5') {
-                        $score = 2.5;
-                    } elseif ($val === 'experto' || $val === '5') {
-                        $score = 5;
-                    }
-                    if ($val !== 'no-data' && $val !== '') {
-                        $data_points[] = $score;
-                    } else {
-                        array_pop($categories);
-                    }
-                }
-
-                if (!isset($all_charts_data)) $all_charts_data = array();
-                $all_charts_data[] = array(
-                    'id' => $row->id,
-                    'categories' => $categories,
-                    'data' => $data_points
-                );
-                ?>
-
-            </div>
-        <?php endforeach; ?>
+        <main id="main" class="site-main" role="main">
+            <?php 
+            foreach ($all_data as $index => $row) {
+                echo storytelling_render_participant_html( $row, '-g' . $index );
+            }
+            ?>
+        </main>
 
         <script>
-            var chartsData = <?php echo isset($all_charts_data) ? wp_json_encode($all_charts_data) : '[]'; ?>;
-            var promises = [];
-            
-            chartsData.forEach(function(item) {
-                var el = document.querySelector("#chart-participant-" + item.id);
-                if (el) {
-                    var options = {
-                        series: [{ name: 'Rendimiento', data: item.data }],
-                        chart: { height: 320, type: 'radar', toolbar: { show: false }, animations: { enabled: false } },
-                        labels: item.categories,
-                        stroke: { width: 2, colors: ['#008ffb'] },
-                        fill: { opacity: 0.2, colors: ['#008ffb'] },
-                        markers: { size: 3 },
-                        yaxis: { min: 0, max: 5, tickAmount: 5 }
-                    };
-                    var chart = new ApexCharts(el, options);
-                    promises.push(chart.render());
+            document.addEventListener('DOMContentLoaded', function() {
+                if (typeof window.radarChartsPromises !== 'undefined') {
+                    Promise.all(window.radarChartsPromises).then(function() {
+                        setTimeout(function(){
+                            window.print();
+                        }, 1000);
+                    });
+                } else {
+                    setTimeout(function(){
+                        window.print();
+                    }, 1000);
                 }
-            });
-
-            Promise.all(promises).then(function() {
-                setTimeout(function(){
-                    window.print();
-                }, 1000);
             });
         </script>
     </body>
