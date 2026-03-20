@@ -188,82 +188,96 @@ function storytelling_render_participant_html( $row, $suffix = '' ) {
                             <span class="data-participant-item-value"><?php echo wpautop(wp_kses_post( $row->personal_opinion )); ?></span>
                         </div>
                         <?php endif; ?>
+                        <?php
+                        $metric_mapping = array(
+                            'Lenguaje no verbal'   => $row->m_lenguaje_no_verbal ?? 'no-data',
+                            'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
+                            'Mensajes memorables'  => $row->m_mensajes ?? 'no-data',
+                            'Preguntas incisivas'  => $row->m_preguntas_incisivas ?? 'no-data',
+                            'Frases citables'      => $row->m_frases_citables ?? 'no-data',
+                            'Usa datos, cifras'    => $row->m_usa_datos ?? 'no-data',
+                            'Valores e historias'  => $row->m_habla_valores ?? 'no-data'
+                        );
+
+                        if (!empty($row->dynamic_metrics)) {
+                            $d_metrics = json_decode($row->dynamic_metrics, true);
+                            if (is_array($d_metrics)) {
+                                foreach($d_metrics as $dm) {
+                                    if (!empty($dm['name'])) {
+                                        $metric_mapping[$dm['name']] = $dm['value'] ?? 'no-data';
+                                    }
+                                }
+                            }
+                        }
+
+                        $excluded_opts = array();
+                        if (!empty($row->excluded_metrics)) {
+                            $decoded = json_decode($row->excluded_metrics, true);
+                            if (is_array($decoded)) {
+                                $excluded_opts = $decoded;
+                            }
+                        }
+                        $global_excluded = get_option('storytelling_global_excluded_metrics', array());
+                        if (is_array($global_excluded)) {
+                            $excluded_opts = array_merge($excluded_opts, $global_excluded);
+                        }
+
+                        $label_to_db_key = array(
+                            'Lenguaje no verbal'   => 'm_lenguaje_no_verbal',
+                            'Dirige la entrevista' => 'm_dirige_entrevista',
+                            'Mensajes memorables'  => 'm_mensajes',
+                            'Preguntas incisivas'  => 'm_preguntas_incisivas',
+                            'Frases citables'      => 'm_frases_citables',
+                            'Usa datos, cifras'    => 'm_usa_datos',
+                            'Valores e historias'  => 'm_habla_valores'
+                        );
+
+                        $categories = array();
+                        $data_points = array();
+                        $has_data = false;
+
+                        foreach ($metric_mapping as $label => $val) {
+                            $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
+                            if (in_array($db_val_key, $excluded_opts)) {
+                                continue;
+                            }
+
+                            $categories[] = $label;
+                            $score = 0;
+                            if ($val === 'Manejo insuficiente' || $val === '1.0' || $val === '1' || strpos(strtolower($val), 'insuficiente') !== false) {
+                                $score = 1;
+                                $has_data = true;
+                            } elseif ($val === 'Buen vocero/a' || $val === '2.5' || strpos(strtolower($val), 'buen') !== false) {
+                                $score = 2.5;
+                                $has_data = true;
+                            } elseif ($val === 'Experto/a' || $val === '5.0' || $val === '5' || strpos(strtolower($val), 'experto') !== false) {
+                                $score = 5;
+                                $has_data = true;
+                            }
+                            
+                            if ($val !== 'No hay datos' && $val !== 'no-data' && $val !== '') {
+                                $data_points[] = $score;
+                            } else {
+                                array_pop($categories);
+                            }
+                        }
+                        
+                        $count_pts = count($data_points);
+                        $average = $count_pts > 0 ? round(array_sum($data_points) / $count_pts, 1) : 0;
+                        ?>
+                        
+                        <?php if ($count_pts > 0) : ?>
+                        <div class="data-participant-item mt-3">
+                            <h3 class="data-participant-item-label" style="color: var(--wp--preset--color--focus);">Promedio de competencias:</h3>
+                            <span class="data-participant-item-value" style="font-size: 1.25rem; font-weight: 700; color: var(--wp--preset--color--focus);">
+                                <?php echo number_format($average, 1); ?> <span style="font-size: 1rem; font-weight: 400; color: var(--wp--preset--color--contrast);">/ 5.0</span>
+                            </span>
+                        </div>
+                        <?php endif; ?>
                     </div>
                 </div>
                 <div class="container chart-container">
                     <?php
-                    $metric_mapping = array(
-                        'Lenguaje no verbal'   => $row->m_lenguaje_no_verbal ?? 'no-data',
-                        'Dirige la entrevista' => $row->m_dirige_entrevista ?? 'no-data',
-                        'Mensajes memorables'  => $row->m_mensajes ?? 'no-data',
-                        'Preguntas incisivas'  => $row->m_preguntas_incisivas ?? 'no-data',
-                        'Frases citables'      => $row->m_frases_citables ?? 'no-data',
-                        'Usa datos, cifras'    => $row->m_usa_datos ?? 'no-data',
-                        'Valores e historias'  => $row->m_habla_valores ?? 'no-data'
-                    );
-
-                    if (!empty($row->dynamic_metrics)) {
-                        $d_metrics = json_decode($row->dynamic_metrics, true);
-                        if (is_array($d_metrics)) {
-                            foreach($d_metrics as $dm) {
-                                if (!empty($dm['name'])) {
-                                    $metric_mapping[$dm['name']] = $dm['value'] ?? 'no-data';
-                                }
-                            }
-                        }
-                    }
-
-                    $excluded_opts = array();
-                    if (!empty($row->excluded_metrics)) {
-                        $decoded = json_decode($row->excluded_metrics, true);
-                        if (is_array($decoded)) {
-                            $excluded_opts = $decoded;
-                        }
-                    }
-                    $global_excluded = get_option('storytelling_global_excluded_metrics', array());
-                    if (is_array($global_excluded)) {
-                        $excluded_opts = array_merge($excluded_opts, $global_excluded);
-                    }
-
-                    $label_to_db_key = array(
-                        'Lenguaje no verbal'   => 'm_lenguaje_no_verbal',
-                        'Dirige la entrevista' => 'm_dirige_entrevista',
-                        'Mensajes memorables'  => 'm_mensajes',
-                        'Preguntas incisivas'  => 'm_preguntas_incisivas',
-                        'Frases citables'      => 'm_frases_citables',
-                        'Usa datos, cifras'    => 'm_usa_datos',
-                        'Valores e historias'  => 'm_habla_valores'
-                    );
-
-                    $categories = array();
-                    $data_points = array();
-                    $has_data = false;
-
-                    foreach ($metric_mapping as $label => $val) {
-                        $db_val_key = isset($label_to_db_key[$label]) ? $label_to_db_key[$label] : $label;
-                        if (in_array($db_val_key, $excluded_opts)) {
-                            continue;
-                        }
-
-                        $categories[] = $label;
-                        $score = 0;
-                        if ($val === 'Manejo insuficiente' || $val === '1.0' || $val === '1' || strpos(strtolower($val), 'insuficiente') !== false) {
-                            $score = 1;
-                            $has_data = true;
-                        } elseif ($val === 'Buen vocero/a' || $val === '2.5' || strpos(strtolower($val), 'buen') !== false) {
-                            $score = 2.5;
-                            $has_data = true;
-                        } elseif ($val === 'Experto/a' || $val === '5.0' || $val === '5' || strpos(strtolower($val), 'experto') !== false) {
-                            $score = 5;
-                            $has_data = true;
-                        }
-                        
-                        if ($val !== 'No hay datos' && $val !== 'no-data' && $val !== '') {
-                            $data_points[] = $score;
-                        } else {
-                            array_pop($categories);
-                        }
-                    }
 
                     $chart_categories = wp_json_encode($categories);
                     $chart_data = wp_json_encode($data_points);
@@ -294,8 +308,18 @@ function storytelling_render_participant_html( $row, $suffix = '' ) {
                                         max: 5,
                                         tickAmount: 5,
                                         labels: {
+                                            style: { colors: ['#323232'] },
                                             formatter: function(val, i) {
                                                 if(i % 2 === 0) { return val; } else { return ''; }
+                                            }
+                                        }
+                                    },
+                                    xaxis: {
+                                        labels: {
+                                            style: {
+                                                colors: Array(<?php echo count($categories); ?>).fill('#323232'),
+                                                fontSize: '16px',
+                                                fontFamily: 'Helvetica, Arial, sans-serif'
                                             }
                                         }
                                     },

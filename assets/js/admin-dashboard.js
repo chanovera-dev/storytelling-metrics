@@ -186,7 +186,7 @@ document.addEventListener('DOMContentLoaded', function () {
             var definedColors = [palette[0]];
 
             if (stats.radar_participants && stats.radar_participants.length > 0) {
-                stats.radar_participants.forEach(function(p, i) {
+                stats.radar_participants.forEach(function (p, i) {
                     radarSeries.push(p);
                     definedColors.push(palette[(i + 1) % palette.length]);
                 });
@@ -205,7 +205,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     activeColors.push(definedColors[0]);
                 }
 
-                participantCheckboxes.forEach(function(cb) {
+                participantCheckboxes.forEach(function (cb) {
                     if (cb.checked) {
                         const pName = cb.value;
                         const index = originalSeries.findIndex(s => s.name === pName);
@@ -217,8 +217,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
 
                 if (activeSeries.length === 0) {
-                    return { 
-                        series: [{ name: 'Vacío', data: [0, 0, 0, 0, 0, 0, 0] }], 
+                    return {
+                        series: [{ name: 'Vacío', data: [0, 0, 0, 0, 0, 0, 0] }],
                         colors: ['transparent'],
                         labels: categories
                     };
@@ -240,10 +240,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
 
                 // Reconstruct series data with only valid indices
-                let newSeries = activeSeries.map(function(s) {
+                let newSeries = activeSeries.map(function (s) {
                     return {
                         name: s.name,
-                        data: validIndices.map(function(index) {
+                        data: validIndices.map(function (index) {
                             return s.data[index] === null ? 0 : s.data[index];
                         })
                     };
@@ -280,15 +280,30 @@ document.addEventListener('DOMContentLoaded', function () {
                     max: 5,
                     tickAmount: 5,
                     labels: {
-                        formatter: function(val) {
+                        style: {
+                            colors: ['#323232']
+                        },
+                        formatter: function (val) {
                             return val.toFixed(1);
+                        }
+                    }
+                },
+                xaxis: {
+                    labels: {
+                        style: {
+                            colors: Array(initialConfig.labels.length).fill('#323232'),
+                            fontSize: '16px',
+                            fontFamily: 'Helvetica, Arial, sans-serif'
                         }
                     }
                 },
                 legend: {
                     show: true,
                     position: 'bottom',
-                    fontSize: '11px',
+                    fontSize: '16px',
+                    labels: {
+                        colors: '#323232'
+                    },
                     markers: {
                         width: 8,
                         height: 8
@@ -303,7 +318,16 @@ document.addEventListener('DOMContentLoaded', function () {
                 radarChart.updateOptions({
                     series: config.series,
                     colors: config.colors,
-                    labels: config.labels
+                    labels: config.labels,
+                    xaxis: {
+                        labels: {
+                            style: {
+                                colors: Array(config.labels.length).fill('#323232'),
+                                fontSize: '16px',
+                                fontFamily: 'Helvetica, Arial, sans-serif'
+                            }
+                        }
+                    }
                 });
             }
 
@@ -312,7 +336,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
 
             if (participantCheckboxes) {
-                participantCheckboxes.forEach(function(cb) {
+                participantCheckboxes.forEach(function (cb) {
                     cb.addEventListener("change", updateRadarChart);
                 });
             }
