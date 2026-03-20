@@ -277,14 +277,12 @@ document.addEventListener('DOMContentLoaded', function () {
                 },
                 yaxis: {
                     min: 0,
-                    max: 5,
-                    tickAmount: 5,
+                    max: 6,
+                    tickAmount: 6,
                     labels: {
-                        style: {
-                            colors: ['#323232']
-                        },
-                        formatter: function (val) {
-                            return val.toFixed(1);
+                        style: { colors: ['#323232'] },
+                        formatter: function(val, i) {
+                            if(i % 2 === 0 && val <= 5) { return val; } else { return ''; }
                         }
                     }
                 },
@@ -294,6 +292,21 @@ document.addEventListener('DOMContentLoaded', function () {
                             colors: Array(initialConfig.labels.length).fill('#323232'),
                             fontSize: '16px',
                             fontFamily: 'Helvetica, Arial, sans-serif'
+                        },
+                        formatter: function(val) {
+                            if (typeof val === 'string') {
+                                if (val === 'Lenguaje no verbal') return ['Lenguaje', 'no verbal'];
+                                if (val === 'Dirige la entrevista') return ['Dirige la', 'entrevista'];
+                                if (val === 'Mensajes memorables') return ['Mensajes', 'memorables'];
+                                if (val === 'Preguntas incisivas') return ['Preguntas', 'incisivas'];
+                                if (val === 'Frases citables') return ['Frases', 'citables'];
+                                if (val === 'Usa datos, cifras') return ['Usa datos,', 'cifras'];
+                                if (val === 'Valores e historias') return ['Valores e', 'historias'];
+                                let words = val.split(' ');
+                                if (words.length > 2) return [words.slice(0, 2).join(' '), words.slice(2).join(' ')];
+                                if (words.length === 2) return words;
+                            }
+                            return val;
                         }
                     }
                 },
@@ -307,6 +320,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     markers: {
                         width: 8,
                         height: 8
+                    }
+                },
+                grid: {
+                    padding: {
+                        left: 30,
+                        right: 30,
+                        top: 15,
+                        bottom: 15
                     }
                 }
             };

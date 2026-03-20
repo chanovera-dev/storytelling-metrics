@@ -109,6 +109,14 @@ function storytelling_get_participant_css() {
             
             .participant-article { padding-bottom: 0 !important; page-break-inside: avoid !important; }
         }
+        
+        .apexcharts-xaxis-label {
+            paint-order: stroke fill;
+            stroke: #ffffff;
+            stroke-width: 4px;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
     </style>
     <?php
     return ob_get_clean();
@@ -305,12 +313,12 @@ function storytelling_render_participant_html( $row, $suffix = '' ) {
                                     labels: <?php echo $chart_categories; ?>,
                                     yaxis: {
                                         min: 0,
-                                        max: 5,
-                                        tickAmount: 5,
+                                        max: 6,
+                                        tickAmount: 6,
                                         labels: {
                                             style: { colors: ['#323232'] },
                                             formatter: function(val, i) {
-                                                if(i % 2 === 0) { return val; } else { return ''; }
+                                                if(i % 2 === 0 && val <= 5) { return val; } else { return ''; }
                                             }
                                         }
                                     },
@@ -320,10 +328,26 @@ function storytelling_render_participant_html( $row, $suffix = '' ) {
                                                 colors: Array(<?php echo count($categories); ?>).fill('#323232'),
                                                 fontSize: '16px',
                                                 fontFamily: 'Helvetica, Arial, sans-serif'
+                                            },
+                                            formatter: function(val) {
+                                                if (typeof val === 'string') {
+                                                    if (val === 'Lenguaje no verbal') return ['Lenguaje', 'no verbal'];
+                                                    if (val === 'Dirige la entrevista') return ['Dirige la', 'entrevista'];
+                                                    if (val === 'Mensajes memorables') return ['Mensajes', 'memorables'];
+                                                    if (val === 'Preguntas incisivas') return ['Preguntas', 'incisivas'];
+                                                    if (val === 'Frases citables') return ['Frases', 'citables'];
+                                                    if (val === 'Usa datos, cifras') return ['Usa datos,', 'cifras'];
+                                                    if (val === 'Valores e historias') return ['Valores e', 'historias'];
+                                                    let words = val.split(' ');
+                                                    if (words.length > 2) return [words.slice(0, 2).join(' '), words.slice(2).join(' ')];
+                                                    if (words.length === 2) return words;
+                                                }
+                                                return val;
                                             }
                                         }
                                     },
                                     markers: { size: 4, colors: ['#fff'], strokeColor: '#0073aa', strokeWidth: 2 },
+                                    grid: { padding: { top: 15, right: 30, bottom: 15, left: 30 } },
                                     fill: { opacity: 0.2, colors: ['#0073aa'] },
                                     stroke: { show: true, width: 2, colors: ['#0073aa'], dashArray: 0 }
                                 };
