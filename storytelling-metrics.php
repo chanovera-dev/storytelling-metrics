@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Nivel de storytelling para líderes
  * Description: Gestión del nivel de storytelling para líderes, formulario de registro, dashboard con estadísticas y exportación a PDF.
- * Version: 1.2.5
+ * Version: 1.3.5
  * Author: ChanoDEV
  * Text Domain: storytelling-levels
  * License: GPL2
@@ -12,6 +12,14 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit; // Exit if accessed directly.
 }
+
+// Restringir el sitio solo a usuarios logueados
+function restringir_contenido_usuarios_logueados() {
+    if ( ! is_user_logged_in() ) {
+        auth_redirect(); // Redirige automáticamente y de forma segura al login
+    }
+}
+add_action( 'template_redirect', 'restringir_contenido_usuarios_logueados' );
 
 // Define constants
 define( 'STORYTELLING_PATH', plugin_dir_path( __FILE__ ) );
